@@ -1,6 +1,4 @@
-# Assignment 2: MapReduce
-
-**Due: 26 Sep** _(Late: 3 Oct)_
+# MapReduce
 
 Please make sure to regularly commit and push your work to Github. As with all assignments in this course, 10% of the grade will come from the quality of your git commit history.
 
