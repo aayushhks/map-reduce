@@ -51,10 +51,11 @@ type RequestTaskReply struct {
 
 // ReportTaskArgs is the argument struct for the worker to report a completed task.
 type ReportTaskArgs struct {
-	TaskID   int      // The ID of the completed task
-	TaskType TaskType // The type of the completed task
-	Attempt  int      // The attempt the worker was handed, to reject stale reports
-	WorkerID string   // Optional: The ID of the worker reporting completion
+	TaskID   int         // The ID of the completed task
+	TaskType TaskType    // The type of the completed task
+	Attempt  int         // The attempt the worker was handed, to reject stale reports
+	WorkerID string      // The ID of the worker reporting completion
+	Metrics  TaskMetrics // What the worker measured while running the task
 }
 
 // ReportTaskReply is the reply from the coordinator after a worker reports a task.

@@ -79,17 +79,19 @@ func (w *worker) run() {
 		case MapTask:
 			// A failed task is left unreported so the coordinator times it out
 			// and hands it to another worker.
-			if err := doMapTask(w.mapf, &reply); err != nil {
+			metrics, err := doMapTask(w.mapf, &reply)
+			if err != nil {
 				log.Printf("map task %d failed: %v", reply.TaskID, err)
 				continue
 			}
-			w.reportTask(&reply)
+			w.reportTask(&reply, metrics)
 		case ReduceTask:
-			if err := doReduceTask(w.reducef, &reply); err != nil {
+			metrics, err := doReduceTask(w.reducef, &reply)
+			if err != nil {
 				log.Printf("reduce task %d failed: %v", reply.TaskID, err)
 				continue
 			}
-			w.reportTask(&reply)
+			w.reportTask(&reply, metrics)
 		case WaitTask:
 			// No tasks available, wait before asking again.
 			time.Sleep(reply.backoff())
@@ -121,16 +123,26 @@ func (r *RequestTaskReply) dir() string {
 
 // doMapTask runs the map function over one input file and writes one
 // intermediate file per reduce partition.
-func doMapTask(mapf func(string, string) []KeyValue, reply *RequestTaskReply) error {
+func doMapTask(mapf func(string, string) []KeyValue, reply *RequestTaskReply) (TaskMetrics, error) {
+	m := TaskMetrics{Start: time.Now()}
+
+	readStart := time.Now()
 	content, err := ReadSplit(reply.Split)
 	if err != nil {
-		return fmt.Errorf("read split: %w", err)
+		return m, fmt.Errorf("read split: %w", err)
 	}
+	m.IO += time.Since(readStart)
+	m.InputBytes = int64(len(content))
 
+	computeStart := time.Now()
 	kva := mapf(reply.Split.File, content)
+	m.Compute = time.Since(computeStart)
+	m.Records = int64(len(kva))
 
+	writeStart := time.Now()
 	nReduce := reply.NReduce
 	tmpFiles := make([]*os.File, nReduce)
+	counters := make([]*countingWriter, nReduce)
 	encoders := make([]*json.Encoder, nReduce)
 
 	// Temp files are created in the output directory so the rename below cannot
@@ -139,35 +151,43 @@ func doMapTask(mapf func(string, string) []KeyValue, reply *RequestTaskReply) er
 		f, err := os.CreateTemp(reply.dir(), fmt.Sprintf("mr-map-%d-%d-", reply.TaskID, i))
 		if err != nil {
 			discard(tmpFiles)
-			return fmt.Errorf("create temp file: %w", err)
+			return m, fmt.Errorf("create temp file: %w", err)
 		}
 		tmpFiles[i] = f
-		encoders[i] = json.NewEncoder(f)
+		counters[i] = &countingWriter{w: f}
+		encoders[i] = json.NewEncoder(counters[i])
 	}
 
 	for _, kv := range kva {
 		if err := encoders[ihash(kv.Key)%nReduce].Encode(&kv); err != nil {
 			discard(tmpFiles)
-			return fmt.Errorf("write intermediate: %w", err)
+			return m, fmt.Errorf("write intermediate: %w", err)
 		}
 	}
 
 	for i := 0; i < nReduce; i++ {
 		if err := tmpFiles[i].Close(); err != nil {
 			discard(tmpFiles)
-			return fmt.Errorf("close intermediate: %w", err)
+			return m, fmt.Errorf("close intermediate: %w", err)
 		}
 		if err := os.Rename(tmpFiles[i].Name(), filepath.Join(reply.dir(), fmt.Sprintf("mr-%d-%d", reply.TaskID, i))); err != nil {
 			discard(tmpFiles)
-			return fmt.Errorf("rename intermediate: %w", err)
+			return m, fmt.Errorf("rename intermediate: %w", err)
 		}
+		m.OutputBytes += counters[i].n
 	}
-	return nil
+
+	m.IO += time.Since(writeStart)
+	m.End = time.Now()
+	return m, nil
 }
 
 // doReduceTask reads every intermediate partition belonging to this reduce
 // task and writes the final mr-out-N file.
-func doReduceTask(reducef func(string, []string) string, reply *RequestTaskReply) error {
+func doReduceTask(reducef func(string, []string) string, reply *RequestTaskReply) (TaskMetrics, error) {
+	m := TaskMetrics{Start: time.Now()}
+
+	readStart := time.Now()
 	intermediate := []KeyValue{}
 
 	for i := 0; i < reply.NMap; i++ {
@@ -176,7 +196,10 @@ func doReduceTask(reducef func(string, []string) string, reply *RequestTaskReply
 		if err != nil {
 			// Every map task completed before this reduce task was handed out,
 			// so a missing partition means data was lost, not that it can be skipped.
-			return fmt.Errorf("open intermediate %v: %w", filename, err)
+			return m, fmt.Errorf("open intermediate %v: %w", filename, err)
+		}
+		if info, err := file.Stat(); err == nil {
+			m.InputBytes += info.Size()
 		}
 		dec := json.NewDecoder(file)
 		for {
@@ -186,20 +209,26 @@ func doReduceTask(reducef func(string, []string) string, reply *RequestTaskReply
 					break
 				}
 				file.Close()
-				return fmt.Errorf("decode intermediate %v: %w", filename, err)
+				return m, fmt.Errorf("decode intermediate %v: %w", filename, err)
 			}
 			intermediate = append(intermediate, kv)
 		}
 		file.Close()
 	}
 
-	sort.Sort(ByKey(intermediate))
+	m.IO += time.Since(readStart)
 
+	sortStart := time.Now()
+	sort.Sort(ByKey(intermediate))
+	m.Compute += time.Since(sortStart)
+
+	writeStart := time.Now()
 	tmpFile, err := os.CreateTemp(reply.dir(), fmt.Sprintf("mr-out-%d-", reply.TaskID))
 	if err != nil {
-		return fmt.Errorf("create temp output: %w", err)
+		return m, fmt.Errorf("create temp output: %w", err)
 	}
 	tmp := []*os.File{tmpFile}
+	out := &countingWriter{w: tmpFile}
 
 	// Group values by key and call the reduce function once per key.
 	for i := 0; i < len(intermediate); {
@@ -212,22 +241,27 @@ func doReduceTask(reducef func(string, []string) string, reply *RequestTaskReply
 			values = append(values, intermediate[k].Value)
 		}
 		output := reducef(intermediate[i].Key, values)
-		if _, err := fmt.Fprintf(tmpFile, "%v %v\n", intermediate[i].Key, output); err != nil {
+		if _, err := fmt.Fprintf(out, "%v %v\n", intermediate[i].Key, output); err != nil {
 			discard(tmp)
-			return fmt.Errorf("write output: %w", err)
+			return m, fmt.Errorf("write output: %w", err)
 		}
+		m.Records++
 		i = j
 	}
 
 	if err := tmpFile.Close(); err != nil {
 		discard(tmp)
-		return fmt.Errorf("close output: %w", err)
+		return m, fmt.Errorf("close output: %w", err)
 	}
 	if err := os.Rename(tmpFile.Name(), filepath.Join(reply.dir(), fmt.Sprintf("mr-out-%d", reply.TaskID))); err != nil {
 		discard(tmp)
-		return fmt.Errorf("rename output: %w", err)
+		return m, fmt.Errorf("rename output: %w", err)
 	}
-	return nil
+
+	m.OutputBytes = out.n
+	m.IO += time.Since(writeStart)
+	m.End = time.Now()
+	return m, nil
 }
 
 // discard removes the temp files left behind by a task that failed partway.
@@ -251,12 +285,18 @@ func (w *worker) requestTask() (RequestTaskReply, bool) {
 }
 
 // reportTask tells the coordinator a task finished.
-func (w *worker) reportTask(task *RequestTaskReply) {
+func (w *worker) reportTask(task *RequestTaskReply, metrics TaskMetrics) {
+	metrics.WorkerID = w.id
+	metrics.TaskType = task.TaskType
+	metrics.TaskID = task.TaskID
+	metrics.Attempt = task.Attempt
+
 	args := ReportTaskArgs{
 		TaskID:   task.TaskID,
 		TaskType: task.TaskType,
 		Attempt:  task.Attempt,
 		WorkerID: w.id,
+		Metrics:  metrics,
 	}
 	w.call("Coordinator.ReportTask", &args, &ReportTaskReply{})
 }

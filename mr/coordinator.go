@@ -40,6 +40,31 @@ type Coordinator struct {
 	nMap                 int
 	mapTasksCompleted    int
 	reduceTasksCompleted int
+
+	jobStart         time.Time
+	mapPhaseEnd      time.Time
+	reducePhaseStart time.Time
+	jobEnd           time.Time
+	taskMetrics      []TaskMetrics
+}
+
+// Trace returns the recorded timeline of the job so far.
+func (c *Coordinator) Trace() JobTrace {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	tasks := make([]TaskMetrics, len(c.taskMetrics))
+	copy(tasks, c.taskMetrics)
+
+	return JobTrace{
+		Start:            c.jobStart,
+		MapPhaseEnd:      c.mapPhaseEnd,
+		ReducePhaseStart: c.reducePhaseStart,
+		End:              c.jobEnd,
+		NMap:             c.nMap,
+		NReduce:          c.nReduce,
+		Tasks:            tasks,
+	}
 }
 
 // jobDone reports whether every task has finished. Callers must hold c.mu.
@@ -86,6 +111,9 @@ func (c *Coordinator) RequestTask(args *RequestTaskArgs, reply *RequestTaskReply
 				reply.NMap = c.nMap
 				reply.WorkDir = c.cfg.WorkDir
 
+				if c.reducePhaseStart.IsZero() {
+					c.reducePhaseStart = time.Now()
+				}
 				c.reduceTasks[i].State = InProgress
 				c.reduceTasks[i].StartTime = time.Now()
 				c.reduceTasks[i].Attempt++
@@ -133,10 +161,18 @@ func (c *Coordinator) ReportTask(args *ReportTaskArgs, reply *ReportTaskReply) e
 	}
 
 	task.State = Completed
+	c.taskMetrics = append(c.taskMetrics, args.Metrics)
+
 	if args.TaskType == MapTask {
 		c.mapTasksCompleted++
+		if c.mapTasksCompleted == c.nMap {
+			c.mapPhaseEnd = time.Now()
+		}
 	} else {
 		c.reduceTasksCompleted++
+		if c.reduceTasksCompleted == c.nReduce {
+			c.jobEnd = time.Now()
+		}
 	}
 
 	return nil
@@ -243,6 +279,7 @@ func MakeCoordinatorWithConfig(files []string, cfg Config) *Coordinator {
 
 	c := Coordinator{
 		cfg:         cfg,
+		jobStart:    time.Now(),
 		nReduce:     cfg.NReduce,
 		nMap:        len(splits),
 		mapTasks:    make([]TaskInfo, len(splits)),
