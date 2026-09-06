@@ -189,6 +189,7 @@ func reportTask(task *RequestTaskReply) {
 	args := ReportTaskArgs{
 		TaskID:   task.TaskID,
 		TaskType: task.TaskType,
+		Attempt:  task.Attempt,
 	}
 	reply := ReportTaskReply{}
 	call("Coordinator.ReportTask", &args, &reply)

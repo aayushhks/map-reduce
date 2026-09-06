@@ -24,6 +24,7 @@ type TaskInfo struct {
 	ID        int
 	State     TaskState
 	StartTime time.Time
+	Attempt   int    // Incremented on every assignment, including reassignments
 	InputFile string // Only for Map tasks
 }
 type Coordinator struct {
@@ -56,6 +57,8 @@ func (c *Coordinator) RequestTask(args *RequestTaskArgs, reply *RequestTaskReply
 
 				c.mapTasks[i].State = InProgress
 				c.mapTasks[i].StartTime = time.Now()
+				c.mapTasks[i].Attempt++
+				reply.Attempt = c.mapTasks[i].Attempt
 				return nil
 			}
 		}
@@ -75,6 +78,8 @@ func (c *Coordinator) RequestTask(args *RequestTaskArgs, reply *RequestTaskReply
 
 				c.reduceTasks[i].State = InProgress
 				c.reduceTasks[i].StartTime = time.Now()
+				c.reduceTasks[i].Attempt++
+				reply.Attempt = c.reduceTasks[i].Attempt
 				return nil
 			}
 		}
@@ -94,23 +99,34 @@ func (c *Coordinator) ReportTask(args *ReportTaskArgs, reply *ReportTaskReply) e
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	taskID := args.TaskID
-	taskType := args.TaskType
-
-	switch taskType {
+	var tasks []TaskInfo
+	switch args.TaskType {
 	case MapTask:
-		// Only mark as completed if it was still in progress (not timed out and reassigned)
-		if c.mapTasks[taskID].State == InProgress {
-			c.mapTasks[taskID].State = Completed
-			c.mapTasksCompleted++
-		}
+		tasks = c.mapTasks
 	case ReduceTask:
-		if c.reduceTasks[taskID].State == InProgress {
-			c.reduceTasks[taskID].State = Completed
-			c.reduceTasksCompleted++
-		}
+		tasks = c.reduceTasks
 	default:
-		log.Printf("Unknown task type reported: %v", taskType)
+		log.Printf("Unknown task type reported: %v", args.TaskType)
+		return nil
+	}
+
+	if args.TaskID < 0 || args.TaskID >= len(tasks) {
+		log.Printf("Task id out of range reported: %v", args.TaskID)
+		return nil
+	}
+
+	// A task that timed out has already been handed to another worker, so only
+	// the attempt currently in progress is allowed to complete it.
+	task := &tasks[args.TaskID]
+	if task.State != InProgress || task.Attempt != args.Attempt {
+		return nil
+	}
+
+	task.State = Completed
+	if args.TaskType == MapTask {
+		c.mapTasksCompleted++
+	} else {
+		c.reduceTasksCompleted++
 	}
 
 	return nil

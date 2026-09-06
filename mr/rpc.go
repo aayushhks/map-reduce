@@ -41,12 +41,14 @@ type RequestTaskReply struct {
 	InputFile string   // The input file for a Map task
 	NReduce   int      // The number of reduce partitions, needed by Map tasks
 	NMap      int      // The number of map tasks, needed by Reduce tasks
+	Attempt   int      // Which attempt at this task the worker was handed
 }
 
 // ReportTaskArgs is the argument struct for the worker to report a completed task.
 type ReportTaskArgs struct {
 	TaskID   int      // The ID of the completed task
 	TaskType TaskType // The type of the completed task
+	Attempt  int      // The attempt the worker was handed, to reject stale reports
 	WorkerID string   // Optional: The ID of the worker reporting completion
 }
 
