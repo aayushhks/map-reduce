@@ -10,6 +10,13 @@ import (
 	"time"
 )
 
+const (
+	// taskTimeout is how long a task may run before it is assumed lost.
+	taskTimeout = 10 * time.Second
+	// timeoutCheckInterval is how often the coordinator looks for lost tasks.
+	timeoutCheckInterval = 2 * time.Second
+)
+
 // TaskState defines the possible states of a task.
 type TaskState int
 
@@ -37,7 +44,11 @@ type Coordinator struct {
 	nMap                 int
 	mapTasksCompleted    int
 	reduceTasksCompleted int
-	isJobDone            bool
+}
+
+// jobDone reports whether every task has finished. Callers must hold c.mu.
+func (c *Coordinator) jobDone() bool {
+	return c.mapTasksCompleted == c.nMap && c.reduceTasksCompleted == c.nReduce
 }
 
 // RequestTask is the RPC handler for workers asking for a task.
@@ -90,7 +101,6 @@ func (c *Coordinator) RequestTask(args *RequestTaskArgs, reply *RequestTaskReply
 
 	// If all map and reduce tasks are done, tell worker to exit
 	reply.TaskType = ExitTask
-	c.isJobDone = true
 	return nil
 }
 
@@ -160,36 +170,42 @@ func (c *Coordinator) Done() bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	return c.isJobDone
+	return c.jobDone()
 }
 
-// checkTimeouts periodically checks for tasks that have taken too long.
+// checkTimeouts periodically returns tasks from crashed or stalled workers to
+// the idle pool.
 func (c *Coordinator) checkTimeouts() {
 	for {
 		c.mu.Lock()
-		if c.isJobDone {
-			c.mu.Unlock()
+		done := c.jobDone()
+		c.mu.Unlock()
+		if done {
 			return
 		}
+		c.reapTimeouts()
+		time.Sleep(timeoutCheckInterval)
+	}
+}
 
-		// Check for timed-out map tasks
-		for i := range c.mapTasks {
-			if c.mapTasks[i].State == InProgress && time.Since(c.mapTasks[i].StartTime) > 10*time.Second {
-				log.Printf("Map task %d timed out. Reassigning.", i)
-				c.mapTasks[i].State = Idle
-			}
+// reapTimeouts makes one pass over the in-progress tasks and reassigns any that
+// have run past the timeout.
+func (c *Coordinator) reapTimeouts() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	for i := range c.mapTasks {
+		if c.mapTasks[i].State == InProgress && time.Since(c.mapTasks[i].StartTime) > taskTimeout {
+			log.Printf("Map task %d timed out. Reassigning.", i)
+			c.mapTasks[i].State = Idle
 		}
+	}
 
-		// Check for timed-out reduce tasks
-		for i := range c.reduceTasks {
-			if c.reduceTasks[i].State == InProgress && time.Since(c.reduceTasks[i].StartTime) > 10*time.Second {
-				log.Printf("Reduce task %d timed out. Reassigning.", i)
-				c.reduceTasks[i].State = Idle
-			}
+	for i := range c.reduceTasks {
+		if c.reduceTasks[i].State == InProgress && time.Since(c.reduceTasks[i].StartTime) > taskTimeout {
+			log.Printf("Reduce task %d timed out. Reassigning.", i)
+			c.reduceTasks[i].State = Idle
 		}
-
-		c.mu.Unlock()
-		time.Sleep(2 * time.Second)
 	}
 }
 
