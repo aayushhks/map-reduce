@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/rpc"
 	"os"
@@ -39,16 +39,22 @@ func Worker(mapf func(string, string) []KeyValue,
 
 	// The worker runs in a loop, asking for tasks and executing them.
 	for {
-		// Ask the coordinator for a task.
 		reply := requestTask()
 
-		// Execute the task based on its type.
 		switch reply.TaskType {
 		case MapTask:
-			doMapTask(mapf, &reply)
+			// A failed task is left unreported so the coordinator times it out
+			// and hands it to another worker.
+			if err := doMapTask(mapf, &reply); err != nil {
+				log.Printf("map task %d failed: %v", reply.TaskID, err)
+				continue
+			}
 			reportTask(&reply)
 		case ReduceTask:
-			doReduceTask(reducef, &reply)
+			if err := doReduceTask(reducef, &reply); err != nil {
+				log.Printf("reduce task %d failed: %v", reply.TaskID, err)
+				continue
+			}
 			reportTask(&reply)
 		case WaitTask:
 			// No tasks available, wait before asking again.
@@ -62,114 +68,126 @@ func Worker(mapf func(string, string) []KeyValue,
 	}
 }
 
-// doMapTask executes a map task.
-func doMapTask(mapf func(string, string) []KeyValue, reply *RequestTaskReply) {
-	// Read input file content.
-	filename := reply.InputFile
-	file, err := os.Open(filename)
+// doMapTask runs the map function over one input file and writes one
+// intermediate file per reduce partition.
+func doMapTask(mapf func(string, string) []KeyValue, reply *RequestTaskReply) error {
+	content, err := os.ReadFile(reply.InputFile)
 	if err != nil {
-		log.Fatalf("cannot open %v", filename)
+		return fmt.Errorf("read input %v: %w", reply.InputFile, err)
 	}
-	content, err := ioutil.ReadAll(file)
-	if err != nil {
-		log.Fatalf("cannot read %v", filename)
-	}
-	file.Close()
 
-	// Execute the map function.
-	kva := mapf(filename, string(content))
+	kva := mapf(reply.InputFile, string(content))
 
-	// Create intermediate files and encoders for each reduce partition.
 	nReduce := reply.NReduce
-	intermediateFiles := make([]*os.File, nReduce)
+	tmpFiles := make([]*os.File, nReduce)
 	encoders := make([]*json.Encoder, nReduce)
+
+	// Temp files are created in the output directory so the rename below cannot
+	// cross a filesystem boundary.
 	for i := 0; i < nReduce; i++ {
-		// Use a temporary file that will be renamed atomically.
-		tmpFile, err := ioutil.TempFile("", fmt.Sprintf("mr-tmp-%d-%d", reply.TaskID, i))
+		f, err := os.CreateTemp(".", fmt.Sprintf("mr-map-%d-%d-", reply.TaskID, i))
 		if err != nil {
-			log.Fatalf("cannot create temp file for map task %d", reply.TaskID)
+			discard(tmpFiles)
+			return fmt.Errorf("create temp file: %w", err)
 		}
-		intermediateFiles[i] = tmpFile
-		encoders[i] = json.NewEncoder(tmpFile)
+		tmpFiles[i] = f
+		encoders[i] = json.NewEncoder(f)
 	}
 
-	// Partition the map output into intermediate files.
 	for _, kv := range kva {
-		reduceIndex := ihash(kv.Key) % nReduce
-		err := encoders[reduceIndex].Encode(&kv)
-		if err != nil {
-			log.Fatalf("cannot write to intermediate file for reduce task %d", reduceIndex)
+		if err := encoders[ihash(kv.Key)%nReduce].Encode(&kv); err != nil {
+			discard(tmpFiles)
+			return fmt.Errorf("write intermediate: %w", err)
 		}
 	}
 
-	// Atomically rename temporary files to their final names.
 	for i := 0; i < nReduce; i++ {
-		tmpName := intermediateFiles[i].Name()
-		finalName := fmt.Sprintf("mr-%d-%d", reply.TaskID, i)
-		intermediateFiles[i].Close()
-		os.Rename(tmpName, finalName)
+		if err := tmpFiles[i].Close(); err != nil {
+			discard(tmpFiles)
+			return fmt.Errorf("close intermediate: %w", err)
+		}
+		if err := os.Rename(tmpFiles[i].Name(), fmt.Sprintf("mr-%d-%d", reply.TaskID, i)); err != nil {
+			discard(tmpFiles)
+			return fmt.Errorf("rename intermediate: %w", err)
+		}
 	}
+	return nil
 }
 
-// doReduceTask executes a reduce task.
-func doReduceTask(reducef func(string, []string) string, reply *RequestTaskReply) {
-	reduceTaskID := reply.TaskID
-	nMap := reply.NMap
+// doReduceTask reads every intermediate partition belonging to this reduce
+// task and writes the final mr-out-N file.
+func doReduceTask(reducef func(string, []string) string, reply *RequestTaskReply) error {
 	intermediate := []KeyValue{}
 
-	// Read all intermediate files for this reduce task.
-	for i := 0; i < nMap; i++ {
-		filename := fmt.Sprintf("mr-%d-%d", i, reduceTaskID)
+	for i := 0; i < reply.NMap; i++ {
+		filename := fmt.Sprintf("mr-%d-%d", i, reply.TaskID)
 		file, err := os.Open(filename)
 		if err != nil {
-			// A map task might have failed, so its file won't exist.
-			// This is okay, just continue.
-			continue
+			// Every map task completed before this reduce task was handed out,
+			// so a missing partition means data was lost, not that it can be skipped.
+			return fmt.Errorf("open intermediate %v: %w", filename, err)
 		}
 		dec := json.NewDecoder(file)
 		for {
 			var kv KeyValue
 			if err := dec.Decode(&kv); err != nil {
-				break
+				if err == io.EOF {
+					break
+				}
+				file.Close()
+				return fmt.Errorf("decode intermediate %v: %w", filename, err)
 			}
 			intermediate = append(intermediate, kv)
 		}
 		file.Close()
 	}
 
-	// Sort intermediate key-value pairs by key.
 	sort.Sort(ByKey(intermediate))
 
-	// Create a temporary output file.
-	tmpFile, err := ioutil.TempFile("", fmt.Sprintf("mr-out-tmp-%d", reduceTaskID))
+	tmpFile, err := os.CreateTemp(".", fmt.Sprintf("mr-out-%d-", reply.TaskID))
 	if err != nil {
-		log.Fatalf("cannot create temp output file for reduce task %d", reduceTaskID)
+		return fmt.Errorf("create temp output: %w", err)
 	}
+	tmp := []*os.File{tmpFile}
 
-	// Group values by key and call the reduce function.
-	i := 0
-	for i < len(intermediate) {
+	// Group values by key and call the reduce function once per key.
+	for i := 0; i < len(intermediate); {
 		j := i + 1
 		for j < len(intermediate) && intermediate[j].Key == intermediate[i].Key {
 			j++
 		}
-		values := []string{}
+		values := make([]string, 0, j-i)
 		for k := i; k < j; k++ {
 			values = append(values, intermediate[k].Value)
 		}
 		output := reducef(intermediate[i].Key, values)
-
-		// Write the result to the output file.
-		fmt.Fprintf(tmpFile, "%v %v\n", intermediate[i].Key, output)
-
+		if _, err := fmt.Fprintf(tmpFile, "%v %v\n", intermediate[i].Key, output); err != nil {
+			discard(tmp)
+			return fmt.Errorf("write output: %w", err)
+		}
 		i = j
 	}
 
-	// Atomically rename the temporary file to the final output file.
-	tmpName := tmpFile.Name()
-	finalName := fmt.Sprintf("mr-out-%d", reduceTaskID)
-	tmpFile.Close()
-	os.Rename(tmpName, finalName)
+	if err := tmpFile.Close(); err != nil {
+		discard(tmp)
+		return fmt.Errorf("close output: %w", err)
+	}
+	if err := os.Rename(tmpFile.Name(), fmt.Sprintf("mr-out-%d", reply.TaskID)); err != nil {
+		discard(tmp)
+		return fmt.Errorf("rename output: %w", err)
+	}
+	return nil
+}
+
+// discard removes the temp files left behind by a task that failed partway.
+func discard(files []*os.File) {
+	for _, f := range files {
+		if f == nil {
+			continue
+		}
+		f.Close()
+		os.Remove(f.Name())
+	}
 }
 
 // requestTask calls the coordinator to request a task.
@@ -195,36 +213,13 @@ func reportTask(task *RequestTaskReply) {
 	call("Coordinator.ReportTask", &args, &reply)
 }
 
-// example function to show how to make an RPC call to the coordinator.
-// the RPC argument and reply types are defined in rpc.go.
-
-func CallExample() {
-
-	// declare an argument structure.
-	args := ExampleArgs{}
-
-	// fill in the argument(s).
-	args.X = 99
-
-	// declare a reply structure.
-	reply := ExampleReply{}
-
-	// send the RPC request, wait for the reply.
-	call("Coordinator.Example", &args, &reply)
-
-	// reply.Y should be 100.
-	fmt.Printf("reply.Y %v\n", reply.Y)
-}
-
 // send an RPC request to the coordinator, wait for the response.
 // usually returns true.
 // returns false if something goes wrong.
 func call(rpcname string, args interface{}, reply interface{}) bool {
-	// c, err := rpc.DialHTTP("tcp", "127.0.0.1"+":1234")
 	sockname := coordinatorSock()
 	c, err := rpc.DialHTTP("unix", sockname)
 	if err != nil {
-		// log.Fatal("dialing:", err)
 		return false // Return false if coordinator is not reachable
 	}
 	defer c.Close()
@@ -234,6 +229,6 @@ func call(rpcname string, args interface{}, reply interface{}) bool {
 		return true
 	}
 
-	fmt.Println(err)
+	log.Printf("rpc %v failed: %v", rpcname, err)
 	return false
 }
