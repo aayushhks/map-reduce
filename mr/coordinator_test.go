@@ -14,7 +14,7 @@ func newTestCoordinator(nMap, nReduce int) *Coordinator {
 		reduceTasks: make([]TaskInfo, nReduce),
 	}
 	for i := 0; i < nMap; i++ {
-		c.mapTasks[i] = TaskInfo{ID: i, State: Idle, InputFile: "input"}
+		c.mapTasks[i] = TaskInfo{ID: i, State: Idle, Split: Split{File: "input"}}
 	}
 	for i := 0; i < nReduce; i++ {
 		c.reduceTasks[i] = TaskInfo{ID: i, State: Idle}

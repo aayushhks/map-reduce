@@ -41,7 +41,7 @@ type RequestTaskArgs struct {
 type RequestTaskReply struct {
 	TaskType    TaskType      // The type of task (Map, Reduce, etc.)
 	TaskID      int           // A unique ID for this task
-	InputFile   string        // The input file for a Map task
+	Split       Split         // The input byte range for a Map task
 	NReduce     int           // The number of reduce partitions, needed by Map tasks
 	NMap        int           // The number of map tasks, needed by Reduce tasks
 	Attempt     int           // Which attempt at this task the worker was handed

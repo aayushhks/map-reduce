@@ -122,12 +122,12 @@ func (r *RequestTaskReply) dir() string {
 // doMapTask runs the map function over one input file and writes one
 // intermediate file per reduce partition.
 func doMapTask(mapf func(string, string) []KeyValue, reply *RequestTaskReply) error {
-	content, err := os.ReadFile(reply.InputFile)
+	content, err := ReadSplit(reply.Split)
 	if err != nil {
-		return fmt.Errorf("read input %v: %w", reply.InputFile, err)
+		return fmt.Errorf("read split: %w", err)
 	}
 
-	kva := mapf(reply.InputFile, string(content))
+	kva := mapf(reply.Split.File, content)
 
 	nReduce := reply.NReduce
 	tmpFiles := make([]*os.File, nReduce)

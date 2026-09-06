@@ -24,8 +24,8 @@ type TaskInfo struct {
 	ID        int
 	State     TaskState
 	StartTime time.Time
-	Attempt   int    // Incremented on every assignment, including reassignments
-	InputFile string // Only for Map tasks
+	Attempt   int   // Incremented on every assignment, including reassignments
+	Split     Split // The input byte range, only for Map tasks
 }
 type Coordinator struct {
 	mu sync.Mutex // Mutex to protect shared state
@@ -59,7 +59,7 @@ func (c *Coordinator) RequestTask(args *RequestTaskArgs, reply *RequestTaskReply
 				// Found an idle map task, assign it
 				reply.TaskType = MapTask
 				reply.TaskID = c.mapTasks[i].ID
-				reply.InputFile = c.mapTasks[i].InputFile
+				reply.Split = c.mapTasks[i].Split
 				reply.NReduce = c.nReduce
 				reply.WorkDir = c.cfg.WorkDir
 
@@ -236,20 +236,25 @@ func MakeCoordinator(files []string, nReduce int) *Coordinator {
 func MakeCoordinatorWithConfig(files []string, cfg Config) *Coordinator {
 	cfg = cfg.withDefaults()
 
+	splits, err := PlanSplits(files, cfg.SplitBytes)
+	if err != nil {
+		log.Fatal("planning input splits: ", err)
+	}
+
 	c := Coordinator{
 		cfg:         cfg,
 		nReduce:     cfg.NReduce,
-		nMap:        len(files),
-		mapTasks:    make([]TaskInfo, len(files)),
+		nMap:        len(splits),
+		mapTasks:    make([]TaskInfo, len(splits)),
 		reduceTasks: make([]TaskInfo, cfg.NReduce),
 	}
 
-	// Initialize map tasks
-	for i, file := range files {
+	// Initialize map tasks, one per input split
+	for i, split := range splits {
 		c.mapTasks[i] = TaskInfo{
-			ID:        i,
-			State:     Idle,
-			InputFile: file,
+			ID:    i,
+			State: Idle,
+			Split: split,
 		}
 	}
 
