@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/rpc"
 	"os"
+	"path/filepath"
 	"sort"
 	"time"
 )
@@ -58,7 +59,7 @@ func Worker(mapf func(string, string) []KeyValue,
 			reportTask(&reply)
 		case WaitTask:
 			// No tasks available, wait before asking again.
-			time.Sleep(1 * time.Second)
+			time.Sleep(reply.backoff())
 		case ExitTask:
 			// Job is done, worker can exit.
 			return
@@ -66,6 +67,22 @@ func Worker(mapf func(string, string) []KeyValue,
 			log.Fatalf("Unknown task type received: %v", reply.TaskType)
 		}
 	}
+}
+
+// backoff is how long to sleep after a WaitTask reply.
+func (r *RequestTaskReply) backoff() time.Duration {
+	if r.WaitBackoff <= 0 {
+		return time.Second
+	}
+	return r.WaitBackoff
+}
+
+// dir is the directory holding this job's intermediate and output files.
+func (r *RequestTaskReply) dir() string {
+	if r.WorkDir == "" {
+		return "."
+	}
+	return r.WorkDir
 }
 
 // doMapTask runs the map function over one input file and writes one
@@ -85,7 +102,7 @@ func doMapTask(mapf func(string, string) []KeyValue, reply *RequestTaskReply) er
 	// Temp files are created in the output directory so the rename below cannot
 	// cross a filesystem boundary.
 	for i := 0; i < nReduce; i++ {
-		f, err := os.CreateTemp(".", fmt.Sprintf("mr-map-%d-%d-", reply.TaskID, i))
+		f, err := os.CreateTemp(reply.dir(), fmt.Sprintf("mr-map-%d-%d-", reply.TaskID, i))
 		if err != nil {
 			discard(tmpFiles)
 			return fmt.Errorf("create temp file: %w", err)
@@ -106,7 +123,7 @@ func doMapTask(mapf func(string, string) []KeyValue, reply *RequestTaskReply) er
 			discard(tmpFiles)
 			return fmt.Errorf("close intermediate: %w", err)
 		}
-		if err := os.Rename(tmpFiles[i].Name(), fmt.Sprintf("mr-%d-%d", reply.TaskID, i)); err != nil {
+		if err := os.Rename(tmpFiles[i].Name(), filepath.Join(reply.dir(), fmt.Sprintf("mr-%d-%d", reply.TaskID, i))); err != nil {
 			discard(tmpFiles)
 			return fmt.Errorf("rename intermediate: %w", err)
 		}
@@ -120,7 +137,7 @@ func doReduceTask(reducef func(string, []string) string, reply *RequestTaskReply
 	intermediate := []KeyValue{}
 
 	for i := 0; i < reply.NMap; i++ {
-		filename := fmt.Sprintf("mr-%d-%d", i, reply.TaskID)
+		filename := filepath.Join(reply.dir(), fmt.Sprintf("mr-%d-%d", i, reply.TaskID))
 		file, err := os.Open(filename)
 		if err != nil {
 			// Every map task completed before this reduce task was handed out,
@@ -144,7 +161,7 @@ func doReduceTask(reducef func(string, []string) string, reply *RequestTaskReply
 
 	sort.Sort(ByKey(intermediate))
 
-	tmpFile, err := os.CreateTemp(".", fmt.Sprintf("mr-out-%d-", reply.TaskID))
+	tmpFile, err := os.CreateTemp(reply.dir(), fmt.Sprintf("mr-out-%d-", reply.TaskID))
 	if err != nil {
 		return fmt.Errorf("create temp output: %w", err)
 	}
@@ -172,7 +189,7 @@ func doReduceTask(reducef func(string, []string) string, reply *RequestTaskReply
 		discard(tmp)
 		return fmt.Errorf("close output: %w", err)
 	}
-	if err := os.Rename(tmpFile.Name(), fmt.Sprintf("mr-out-%d", reply.TaskID)); err != nil {
+	if err := os.Rename(tmpFile.Name(), filepath.Join(reply.dir(), fmt.Sprintf("mr-out-%d", reply.TaskID))); err != nil {
 		discard(tmp)
 		return fmt.Errorf("rename output: %w", err)
 	}

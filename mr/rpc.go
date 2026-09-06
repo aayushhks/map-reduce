@@ -3,8 +3,11 @@ package mr
 // RPC definitions.
 // remember to capitalize all names.
 
-import "os"
-import "strconv"
+import (
+	"os"
+	"strconv"
+	"time"
+)
 
 // example to show how to declare the arguments
 // and reply for an RPC.
@@ -36,12 +39,14 @@ type RequestTaskArgs struct {
 
 // RequestTaskReply is the reply struct from the coordinator for a task request.
 type RequestTaskReply struct {
-	TaskType  TaskType // The type of task (Map, Reduce, etc.)
-	TaskID    int      // A unique ID for this task
-	InputFile string   // The input file for a Map task
-	NReduce   int      // The number of reduce partitions, needed by Map tasks
-	NMap      int      // The number of map tasks, needed by Reduce tasks
-	Attempt   int      // Which attempt at this task the worker was handed
+	TaskType    TaskType      // The type of task (Map, Reduce, etc.)
+	TaskID      int           // A unique ID for this task
+	InputFile   string        // The input file for a Map task
+	NReduce     int           // The number of reduce partitions, needed by Map tasks
+	NMap        int           // The number of map tasks, needed by Reduce tasks
+	Attempt     int           // Which attempt at this task the worker was handed
+	WorkDir     string        // Directory holding intermediate and output files
+	WaitBackoff time.Duration // How long to sleep before asking again after a WaitTask
 }
 
 // ReportTaskArgs is the argument struct for the worker to report a completed task.

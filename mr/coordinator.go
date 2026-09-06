@@ -10,13 +10,6 @@ import (
 	"time"
 )
 
-const (
-	// taskTimeout is how long a task may run before it is assumed lost.
-	taskTimeout = 10 * time.Second
-	// timeoutCheckInterval is how often the coordinator looks for lost tasks.
-	timeoutCheckInterval = 2 * time.Second
-)
-
 // TaskState defines the possible states of a task.
 type TaskState int
 
@@ -36,6 +29,9 @@ type TaskInfo struct {
 }
 type Coordinator struct {
 	mu sync.Mutex // Mutex to protect shared state
+
+	cfg      Config
+	listener net.Listener
 
 	mapTasks    []TaskInfo
 	reduceTasks []TaskInfo
@@ -65,6 +61,7 @@ func (c *Coordinator) RequestTask(args *RequestTaskArgs, reply *RequestTaskReply
 				reply.TaskID = c.mapTasks[i].ID
 				reply.InputFile = c.mapTasks[i].InputFile
 				reply.NReduce = c.nReduce
+				reply.WorkDir = c.cfg.WorkDir
 
 				c.mapTasks[i].State = InProgress
 				c.mapTasks[i].StartTime = time.Now()
@@ -75,6 +72,7 @@ func (c *Coordinator) RequestTask(args *RequestTaskArgs, reply *RequestTaskReply
 		}
 		// If no idle tasks, tell worker to wait
 		reply.TaskType = WaitTask
+		reply.WaitBackoff = c.cfg.WaitBackoff
 		return nil
 	}
 
@@ -86,6 +84,7 @@ func (c *Coordinator) RequestTask(args *RequestTaskArgs, reply *RequestTaskReply
 				reply.TaskType = ReduceTask
 				reply.TaskID = c.reduceTasks[i].ID
 				reply.NMap = c.nMap
+				reply.WorkDir = c.cfg.WorkDir
 
 				c.reduceTasks[i].State = InProgress
 				c.reduceTasks[i].StartTime = time.Now()
@@ -96,6 +95,7 @@ func (c *Coordinator) RequestTask(args *RequestTaskArgs, reply *RequestTaskReply
 		}
 		// If no idle tasks, tell worker to wait
 		reply.TaskType = WaitTask
+		reply.WaitBackoff = c.cfg.WaitBackoff
 		return nil
 	}
 
@@ -152,15 +152,30 @@ func (c *Coordinator) Example(args *ExampleArgs, reply *ExampleReply) error {
 
 // start a thread that listens for RPCs from worker.go
 func (c *Coordinator) server() {
-	rpc.Register(c)
-	rpc.HandleHTTP()
-	sockname := coordinatorSock()
-	os.Remove(sockname)
-	l, e := net.Listen("unix", sockname)
+	server := rpc.NewServer()
+	if err := server.Register(c); err != nil {
+		log.Fatal("register error:", err)
+	}
+
+	mux := http.NewServeMux()
+	mux.Handle(rpc.DefaultRPCPath, server)
+
+	os.Remove(c.cfg.SocketPath)
+	l, e := net.Listen("unix", c.cfg.SocketPath)
 	if e != nil {
 		log.Fatal("listen error:", e)
 	}
-	go http.Serve(l, nil)
+	c.listener = l
+
+	go http.Serve(l, mux)
+}
+
+// Shutdown stops the RPC listener so an in-process caller can run another job.
+func (c *Coordinator) Shutdown() {
+	if c.listener != nil {
+		c.listener.Close()
+	}
+	os.Remove(c.cfg.SocketPath)
 }
 
 // mr-main/mrcoordinator.go calls Done() periodically to find out
@@ -184,7 +199,7 @@ func (c *Coordinator) checkTimeouts() {
 			return
 		}
 		c.reapTimeouts()
-		time.Sleep(timeoutCheckInterval)
+		time.Sleep(c.cfg.ReapInterval)
 	}
 }
 
@@ -195,14 +210,14 @@ func (c *Coordinator) reapTimeouts() {
 	defer c.mu.Unlock()
 
 	for i := range c.mapTasks {
-		if c.mapTasks[i].State == InProgress && time.Since(c.mapTasks[i].StartTime) > taskTimeout {
+		if c.mapTasks[i].State == InProgress && time.Since(c.mapTasks[i].StartTime) > c.cfg.TaskTimeout {
 			log.Printf("Map task %d timed out. Reassigning.", i)
 			c.mapTasks[i].State = Idle
 		}
 	}
 
 	for i := range c.reduceTasks {
-		if c.reduceTasks[i].State == InProgress && time.Since(c.reduceTasks[i].StartTime) > taskTimeout {
+		if c.reduceTasks[i].State == InProgress && time.Since(c.reduceTasks[i].StartTime) > c.cfg.TaskTimeout {
 			log.Printf("Reduce task %d timed out. Reassigning.", i)
 			c.reduceTasks[i].State = Idle
 		}
@@ -214,11 +229,19 @@ func (c *Coordinator) reapTimeouts() {
 // nReduce is the number of reduce tasks to use.
 
 func MakeCoordinator(files []string, nReduce int) *Coordinator {
+	return MakeCoordinatorWithConfig(files, DefaultConfig(nReduce))
+}
+
+// MakeCoordinatorWithConfig creates a Coordinator with explicit settings.
+func MakeCoordinatorWithConfig(files []string, cfg Config) *Coordinator {
+	cfg = cfg.withDefaults()
+
 	c := Coordinator{
-		nReduce:     nReduce,
+		cfg:         cfg,
+		nReduce:     cfg.NReduce,
 		nMap:        len(files),
 		mapTasks:    make([]TaskInfo, len(files)),
-		reduceTasks: make([]TaskInfo, nReduce),
+		reduceTasks: make([]TaskInfo, cfg.NReduce),
 	}
 
 	// Initialize map tasks
@@ -231,7 +254,7 @@ func MakeCoordinator(files []string, nReduce int) *Coordinator {
 	}
 
 	// Initialize reduce tasks
-	for i := 0; i < nReduce; i++ {
+	for i := 0; i < cfg.NReduce; i++ {
 		c.reduceTasks[i] = TaskInfo{
 			ID:    i,
 			State: Idle,
