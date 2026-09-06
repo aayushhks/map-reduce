@@ -34,7 +34,7 @@ const (
 // RequestTaskArgs is the argument struct for the worker's request for a task.
 // It can be empty as the coordinator knows which tasks are available.
 type RequestTaskArgs struct {
-	// WorkerID could be added here for debugging, but is not essential.
+	WorkerID string // Identifies the worker asking for work
 }
 
 // RequestTaskReply is the reply struct from the coordinator for a task request.

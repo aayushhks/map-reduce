@@ -34,29 +34,62 @@ func ihash(key string) int {
 	return int(h.Sum32() & 0x7fffffff)
 }
 
+// WorkerOptions configures a single worker run.
+type WorkerOptions struct {
+	ID         string // Identifies this worker in coordinator logs and traces
+	SocketPath string // Coordinator socket, defaults to the standalone path
+}
+
+// worker holds the state one worker needs for its request and report loop.
+type worker struct {
+	id      string
+	sock    string
+	mapf    func(string, string) []KeyValue
+	reducef func(string, []string) string
+}
+
 // mr-main/mrworker.go calls this function.
 func Worker(mapf func(string, string) []KeyValue,
 	reducef func(string, []string) string) {
+	RunWorker(mapf, reducef, WorkerOptions{})
+}
 
-	// The worker runs in a loop, asking for tasks and executing them.
+// RunWorker runs the request, execute and report loop until the job finishes or
+// the coordinator becomes unreachable.
+func RunWorker(mapf func(string, string) []KeyValue,
+	reducef func(string, []string) string, opts WorkerOptions) {
+
+	w := &worker{id: opts.ID, sock: opts.SocketPath, mapf: mapf, reducef: reducef}
+	if w.sock == "" {
+		w.sock = coordinatorSock()
+	}
+	w.run()
+}
+
+// run asks for work until the job is done or the coordinator goes away.
+func (w *worker) run() {
 	for {
-		reply := requestTask()
+		reply, ok := w.requestTask()
+		if !ok {
+			// Coordinator has exited, so this worker is finished too.
+			return
+		}
 
 		switch reply.TaskType {
 		case MapTask:
 			// A failed task is left unreported so the coordinator times it out
 			// and hands it to another worker.
-			if err := doMapTask(mapf, &reply); err != nil {
+			if err := doMapTask(w.mapf, &reply); err != nil {
 				log.Printf("map task %d failed: %v", reply.TaskID, err)
 				continue
 			}
-			reportTask(&reply)
+			w.reportTask(&reply)
 		case ReduceTask:
-			if err := doReduceTask(reducef, &reply); err != nil {
+			if err := doReduceTask(w.reducef, &reply); err != nil {
 				log.Printf("reduce task %d failed: %v", reply.TaskID, err)
 				continue
 			}
-			reportTask(&reply)
+			w.reportTask(&reply)
 		case WaitTask:
 			// No tasks available, wait before asking again.
 			time.Sleep(reply.backoff())
@@ -64,7 +97,8 @@ func Worker(mapf func(string, string) []KeyValue,
 			// Job is done, worker can exit.
 			return
 		default:
-			log.Fatalf("Unknown task type received: %v", reply.TaskType)
+			log.Printf("Unknown task type received: %v", reply.TaskType)
+			return
 		}
 	}
 }
@@ -207,35 +241,31 @@ func discard(files []*os.File) {
 	}
 }
 
-// requestTask calls the coordinator to request a task.
-func requestTask() RequestTaskReply {
-	args := RequestTaskArgs{}
+// requestTask asks the coordinator for a task. The second result is false when
+// the coordinator is no longer reachable.
+func (w *worker) requestTask() (RequestTaskReply, bool) {
+	args := RequestTaskArgs{WorkerID: w.id}
 	reply := RequestTaskReply{}
-	ok := call("Coordinator.RequestTask", &args, &reply)
-	if !ok {
-		// Coordinator has likely exited, so the worker should too.
-		os.Exit(0)
-	}
-	return reply
+	ok := w.call("Coordinator.RequestTask", &args, &reply)
+	return reply, ok
 }
 
-// reportTask calls the coordinator to report task completion.
-func reportTask(task *RequestTaskReply) {
+// reportTask tells the coordinator a task finished.
+func (w *worker) reportTask(task *RequestTaskReply) {
 	args := ReportTaskArgs{
 		TaskID:   task.TaskID,
 		TaskType: task.TaskType,
 		Attempt:  task.Attempt,
+		WorkerID: w.id,
 	}
-	reply := ReportTaskReply{}
-	call("Coordinator.ReportTask", &args, &reply)
+	w.call("Coordinator.ReportTask", &args, &ReportTaskReply{})
 }
 
 // send an RPC request to the coordinator, wait for the response.
 // usually returns true.
 // returns false if something goes wrong.
-func call(rpcname string, args interface{}, reply interface{}) bool {
-	sockname := coordinatorSock()
-	c, err := rpc.DialHTTP("unix", sockname)
+func (w *worker) call(rpcname string, args interface{}, reply interface{}) bool {
+	c, err := rpc.DialHTTP("unix", w.sock)
 	if err != nil {
 		return false // Return false if coordinator is not reachable
 	}
