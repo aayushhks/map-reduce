@@ -78,6 +78,7 @@ func main() {
 		Environment: environment(),
 		Config: RunReport{
 			Dataset:       *dataset,
+			InputGlob:     *inputGlob,
 			Workload:      *app,
 			Workers:       *workers,
 			NReduce:       *nReduce,

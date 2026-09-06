@@ -30,6 +30,7 @@ type Environment struct {
 // RunReport is the configuration every number in this report belongs to.
 type RunReport struct {
 	Dataset       string  `json:"dataset"`
+	InputGlob     string  `json:"input_glob"`
 	Workload      string  `json:"workload"`
 	Workers       int     `json:"workers"`
 	NReduce       int     `json:"n_reduce"`
