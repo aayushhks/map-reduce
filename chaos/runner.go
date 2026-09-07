@@ -44,10 +44,24 @@ type Kill struct {
 	At       time.Time
 }
 
-// worker is one running worker process.
+// worker is one running worker process. reap makes sure Wait is called exactly
+// once, since calling it twice on the same command is a race.
 type worker struct {
-	id  string
-	cmd *exec.Cmd
+	id   string
+	cmd  *exec.Cmd
+	once sync.Once
+}
+
+// stop signals the process and reaps it, at most once.
+func (w *worker) stop() bool {
+	if w.cmd.Process == nil {
+		return false
+	}
+	if err := w.cmd.Process.Kill(); err != nil {
+		return false
+	}
+	w.once.Do(func() { go w.cmd.Wait() })
+	return true
 }
 
 // run executes one scenario end to end and returns what happened.
@@ -154,14 +168,9 @@ func (p *pool) kill(index int) (string, bool) {
 		return "", false
 	}
 	w := p.workers[index]
-	if w.cmd.Process == nil {
+	if !w.stop() {
 		return "", false
 	}
-	if err := w.cmd.Process.Kill(); err != nil {
-		return "", false
-	}
-	go w.cmd.Wait()
-
 	return w.id, true
 }
 
@@ -178,10 +187,7 @@ func (p *pool) stopAll() {
 	defer p.mu.Unlock()
 
 	for _, w := range p.workers {
-		if w.cmd.Process != nil {
-			w.cmd.Process.Kill()
-			go w.cmd.Wait()
-		}
+		w.stop()
 	}
 }
 

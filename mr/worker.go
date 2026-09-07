@@ -50,6 +50,10 @@ type WorkerOptions struct {
 // grant is idempotent so a retried report cannot lose work.
 const rpcAttempts = 4
 
+// Temp files are named so they cannot be mistaken for finished output. A worker
+// killed mid task leaves its temp file behind, and anything matching mr-out-*
+// would then be read as job output by whatever consumes the results.
+//
 // pendingOutput is finished task output waiting for permission to publish.
 // Output stays in temp files until the coordinator names one attempt the
 // committer, so a losing backup never writes over a good result.
@@ -235,7 +239,7 @@ func doMapTask(mapf func(string, string) []KeyValue, reply *RequestTaskReply) (T
 	// Temp files are created in the output directory so the rename below cannot
 	// cross a filesystem boundary.
 	for i := 0; i < nReduce; i++ {
-		f, err := os.CreateTemp(reply.dir(), fmt.Sprintf("mr-map-%d-%d-", reply.TaskID, i))
+		f, err := os.CreateTemp(reply.dir(), fmt.Sprintf(".mrtmp-map-%d-%d-", reply.TaskID, i))
 		if err != nil {
 			discard(tmpFiles)
 			return m, out, fmt.Errorf("create temp file: %w", err)
@@ -309,7 +313,7 @@ func doReduceTask(reducef func(string, []string) string, reply *RequestTaskReply
 	m.Compute += time.Since(sortStart)
 
 	writeStart := time.Now()
-	tmpFile, err := os.CreateTemp(reply.dir(), fmt.Sprintf("mr-out-%d-", reply.TaskID))
+	tmpFile, err := os.CreateTemp(reply.dir(), fmt.Sprintf(".mrtmp-out-%d-", reply.TaskID))
 	if err != nil {
 		return m, out, fmt.Errorf("create temp output: %w", err)
 	}
