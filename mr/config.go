@@ -23,7 +23,7 @@ func DefaultConfig(nReduce int) Config {
 		NReduce:      nReduce,
 		TaskTimeout:  10 * time.Second,
 		ReapInterval: 2 * time.Second,
-		WaitBackoff:  time.Second,
+		WaitBackoff:  10 * time.Millisecond,
 		SocketPath:   coordinatorSock(),
 	}
 }

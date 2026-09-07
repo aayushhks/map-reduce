@@ -69,7 +69,9 @@ func RunWorker(mapf func(string, string) []KeyValue,
 // run asks for work until the job is done or the coordinator goes away.
 func (w *worker) run() {
 	for {
+		asked := time.Now()
 		reply, ok := w.requestTask()
+		dispatch := time.Since(asked)
 		if !ok {
 			// Coordinator has exited, so this worker is finished too.
 			return
@@ -80,6 +82,7 @@ func (w *worker) run() {
 			// A failed task is left unreported so the coordinator times it out
 			// and hands it to another worker.
 			metrics, err := doMapTask(w.mapf, &reply)
+			metrics.Dispatch = dispatch
 			if err != nil {
 				log.Printf("map task %d failed: %v", reply.TaskID, err)
 				continue
@@ -87,6 +90,7 @@ func (w *worker) run() {
 			w.reportTask(&reply, metrics)
 		case ReduceTask:
 			metrics, err := doReduceTask(w.reducef, &reply)
+			metrics.Dispatch = dispatch
 			if err != nil {
 				log.Printf("reduce task %d failed: %v", reply.TaskID, err)
 				continue
@@ -108,7 +112,7 @@ func (w *worker) run() {
 // backoff is how long to sleep after a WaitTask reply.
 func (r *RequestTaskReply) backoff() time.Duration {
 	if r.WaitBackoff <= 0 {
-		return time.Second
+		return 10 * time.Millisecond
 	}
 	return r.WaitBackoff
 }

@@ -20,11 +20,12 @@ type Report struct {
 
 // Environment records what the numbers were measured on.
 type Environment struct {
-	GOOS      string `json:"goos"`
-	GOARCH    string `json:"goarch"`
-	GoVersion string `json:"go_version"`
-	NumCPU    int    `json:"num_cpu"`
-	Placement string `json:"placement"`
+	GOOS       string `json:"goos"`
+	GOARCH     string `json:"goarch"`
+	GoVersion  string `json:"go_version"`
+	NumCPU     int    `json:"num_cpu"`
+	GOMAXPROCS int    `json:"gomaxprocs"`
+	Placement  string `json:"placement"`
 }
 
 // RunReport is the configuration every number in this report belongs to.
@@ -103,11 +104,12 @@ type Interval struct {
 // environment captures the machine the benchmark ran on.
 func environment() Environment {
 	return Environment{
-		GOOS:      runtime.GOOS,
-		GOARCH:    runtime.GOARCH,
-		GoVersion: runtime.Version(),
-		NumCPU:    runtime.NumCPU(),
-		Placement: "single machine, coordinator and workers in one process over unix socket rpc",
+		GOOS:       runtime.GOOS,
+		GOARCH:     runtime.GOARCH,
+		GoVersion:  runtime.Version(),
+		NumCPU:     runtime.NumCPU(),
+		GOMAXPROCS: runtime.GOMAXPROCS(0),
+		Placement:  "single machine, coordinator and workers in one process over unix socket rpc",
 	}
 }
 

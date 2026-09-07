@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -23,8 +24,9 @@ func main() {
 		splitBytes = flag.Int("split-bytes", 0, "target map split size in bytes, 0 means one split per file")
 		trials     = flag.Int("trials", 5, "number of trials to run")
 		seed       = flag.Int64("seed", 1, "seed controlling input ordering")
-		backoff    = flag.Duration("wait-backoff", time.Second, "worker sleep when no task is available")
+		backoff    = flag.Duration("wait-backoff", 10*time.Millisecond, "worker sleep when no task is available")
 		workDir    = flag.String("workdir", "bench-tmp", "directory for intermediate and output files")
+		sweep      = flag.String("sweep", "", "comma separated worker counts to sweep, e.g. 1,2,4,8,16")
 		out        = flag.String("out", "", "write the JSON report to this path instead of stdout")
 	)
 	flag.Parse()
@@ -56,6 +58,26 @@ func main() {
 		WaitBackoff: *backoff,
 		Seed:        *seed,
 		WorkDir:     *workDir,
+	}
+
+	if *sweep != "" {
+		counts, err := parseCounts(*sweep)
+		if err != nil {
+			fail(err)
+		}
+		runSweep(cfg, counts, *trials, RunReport{
+			Dataset:       *dataset,
+			InputGlob:     *inputGlob,
+			Workload:      *app,
+			NReduce:       *nReduce,
+			SplitBytes:    *splitBytes,
+			WaitBackoffMS: millis(*backoff),
+			Seed:          *seed,
+			Trials:        *trials,
+			InputFiles:    len(inputs),
+			InputBytes:    inputBytes,
+		}, *out, *workDir)
+		return
 	}
 
 	results := make([]RunResult, 0, *trials)
@@ -102,6 +124,88 @@ func main() {
 	if err := os.RemoveAll(*workDir); err != nil {
 		fail(fmt.Errorf("clean work dir: %w", err))
 	}
+}
+
+// parseCounts reads a comma separated list of worker counts.
+func parseCounts(spec string) ([]int, error) {
+	counts := []int{}
+	for _, field := range strings.Split(spec, ",") {
+		n, err := strconv.Atoi(strings.TrimSpace(field))
+		if err != nil {
+			return nil, fmt.Errorf("bad worker count %q: %w", field, err)
+		}
+		if n < 1 {
+			return nil, fmt.Errorf("worker count must be at least 1, got %d", n)
+		}
+		counts = append(counts, n)
+	}
+	if len(counts) == 0 {
+		return nil, fmt.Errorf("no worker counts given")
+	}
+	sort.Ints(counts)
+	return counts, nil
+}
+
+// runSweep measures every worker count on the same input and writes one report.
+func runSweep(cfg RunConfig, counts []int, trials int, base RunReport, out, workDir string) {
+	points := make([]ScalingPoint, 0, len(counts))
+
+	for _, workers := range counts {
+		cfg.Workers = workers
+
+		results := make([]RunResult, 0, trials)
+		trialReports := make([]Trial, 0, trials)
+		for i := 0; i < trials; i++ {
+			result, err := runJob(cfg)
+			if err != nil {
+				fail(fmt.Errorf("workers=%d trial %d: %w", workers, i, err))
+			}
+			results = append(results, result)
+			trialReports = append(trialReports, summarizeTrial(i, result))
+		}
+
+		point := buildScalingPoint(workers, results, trialReports)
+		points = append(points, point)
+		base.MapTasks = results[0].Trace.NMap
+		fmt.Fprintf(os.Stderr, "workers=%-3d wall=%.0f ms  cpu=%.2f  busy=%.2f  coord=%.3f  hash=%s\n",
+			workers, point.WallMS.Median, point.CPUSaturation, point.MeanBusyShare,
+			point.CoordinatorShare, point.OutputHash[:8])
+	}
+
+	fillSpeedups(points)
+
+	report := ScalingReport{
+		Schema:      "mapreduce-scaling/v1",
+		GeneratedAt: time.Now().UTC().Format(time.RFC3339),
+		Environment: environment(),
+		Config:      base,
+		Points:      points,
+	}
+
+	if err := writeScalingReport(report, out); err != nil {
+		fail(err)
+	}
+	if err := os.RemoveAll(workDir); err != nil {
+		fail(fmt.Errorf("clean work dir: %w", err))
+	}
+}
+
+// writeScalingReport emits the sweep as indented JSON.
+func writeScalingReport(r ScalingReport, path string) error {
+	data, err := json.MarshalIndent(r, "", "  ")
+	if err != nil {
+		return fmt.Errorf("encode report: %w", err)
+	}
+	data = append(data, '\n')
+
+	if path == "" {
+		_, err := os.Stdout.Write(data)
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return fmt.Errorf("create report dir: %w", err)
+	}
+	return os.WriteFile(path, data, 0o644)
 }
 
 // totalBytes is the size of the whole input set.

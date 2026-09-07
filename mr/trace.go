@@ -15,6 +15,7 @@ type TaskMetrics struct {
 	End         time.Time
 	Compute     time.Duration // Time inside the map or reduce function
 	IO          time.Duration // Time reading inputs and writing outputs
+	Dispatch    time.Duration // Round trip of the RPC that handed out this task
 	InputBytes  int64
 	OutputBytes int64
 	Records     int64
@@ -25,6 +26,17 @@ func (m TaskMetrics) Duration() time.Duration {
 	return m.End.Sub(m.Start)
 }
 
+// RPCStats is the coordinator side cost of serving workers. Handler time is
+// measured from entry, so it includes waiting for the coordinator lock and
+// rises when workers contend for it.
+type RPCStats struct {
+	RequestCalls int64
+	RequestTime  time.Duration
+	RequestWaits int64 // Replies that told a worker to wait for work
+	ReportCalls  int64
+	ReportTime   time.Duration
+}
+
 // JobTrace is the full record of one job, enough to rebuild a timeline.
 type JobTrace struct {
 	Start            time.Time
@@ -33,6 +45,7 @@ type JobTrace struct {
 	End              time.Time // When the last reduce task completed
 	NMap             int
 	NReduce          int
+	RPC              RPCStats
 	Tasks            []TaskMetrics
 }
 

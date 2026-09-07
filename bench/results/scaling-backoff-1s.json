@@ -1,0 +1,302 @@
+{
+  "schema": "mapreduce-scaling/v1",
+  "generated_at": "2026-09-07T19:19:25Z",
+  "environment": {
+    "goos": "linux",
+    "goarch": "amd64",
+    "go_version": "go1.24.7",
+    "num_cpu": 4,
+    "placement": "single machine, coordinator and workers in one process over unix socket rpc"
+  },
+  "config": {
+    "dataset": "project gutenberg 8 books, replicated 20x",
+    "input_glob": "/tmp/claude-0/-home-user-map-reduce/fca9a27d-5d91-52dd-9572-26fc60c06a11/scratchpad/corpus20/*.txt",
+    "workload": "invertedindex",
+    "workers": 0,
+    "n_reduce": 16,
+    "split_bytes": 4194304,
+    "wait_backoff_ms": 1000,
+    "seed": 1,
+    "trials": 5,
+    "input_files": 160,
+    "input_bytes": 66022080,
+    "map_tasks": 160
+  },
+  "points": [
+    {
+      "workers": 1,
+      "wall_ms": {
+        "median": 6352.857,
+        "min": 6103.208,
+        "max": 6553.364
+      },
+      "map_phase_ms": {
+        "median": 4867.886,
+        "min": 4677.922,
+        "max": 5055.189
+      },
+      "reduce_phase_ms": {
+        "median": 1457.099,
+        "min": 1424.678,
+        "max": 1497.601
+      },
+      "speedup": 1,
+      "ideal_speedup": 1,
+      "efficiency": 1,
+      "cpu_saturation": 0.24,
+      "mean_busy_share": 0.96,
+      "dispatch_ms": {
+        "count": 176,
+        "min_ms": 0.308159,
+        "p50_ms": 0.534,
+        "p95_ms": 1.141,
+        "p99_ms": 1.411,
+        "max_ms": 4.125981,
+        "mean_ms": 0.609
+      },
+      "coordinator_handler_ms": 0.434,
+      "coordinator_handler_share": 0,
+      "rpc_calls": 353,
+      "wait_replies": 0,
+      "map_task_ms": {
+        "count": 160,
+        "min_ms": 5.078581,
+        "p50_ms": 32.348,
+        "p95_ms": 43.394,
+        "p99_ms": 50.579,
+        "max_ms": 51.179593,
+        "mean_ms": 28.962
+      },
+      "reduce_task_ms": {
+        "count": 16,
+        "min_ms": 80.36127,
+        "p50_ms": 91.107,
+        "p95_ms": 99.92,
+        "p99_ms": 99.92,
+        "max_ms": 99.920128,
+        "mean_ms": 91.398
+      },
+      "output_hash": "337772595124868e4b9b870018fe4c545edad07dd580b6e451be1e9367b38ba5"
+    },
+    {
+      "workers": 2,
+      "wall_ms": {
+        "median": 4223.248,
+        "min": 3786.578,
+        "max": 4336.64
+      },
+      "map_phase_ms": {
+        "median": 2952.931,
+        "min": 2506.168,
+        "max": 3059.936
+      },
+      "reduce_phase_ms": {
+        "median": 1276.165,
+        "min": 1266.039,
+        "max": 1280.047
+      },
+      "speedup": 1.504,
+      "ideal_speedup": 2,
+      "efficiency": 0.752,
+      "cpu_saturation": 0.416,
+      "mean_busy_share": 0.832,
+      "dispatch_ms": {
+        "count": 176,
+        "min_ms": 0.17658,
+        "p50_ms": 0.506,
+        "p95_ms": 1.871,
+        "p99_ms": 4.169,
+        "max_ms": 4.866115,
+        "mean_ms": 0.733
+      },
+      "coordinator_handler_ms": 1.138,
+      "coordinator_handler_share": 0,
+      "rpc_calls": 356,
+      "wait_replies": 2,
+      "map_task_ms": {
+        "count": 160,
+        "min_ms": 4.967954,
+        "p50_ms": 35.46,
+        "p95_ms": 55.384,
+        "p99_ms": 60.061,
+        "max_ms": 63.774702,
+        "mean_ms": 34.894
+      },
+      "reduce_task_ms": {
+        "count": 16,
+        "min_ms": 77.761678,
+        "p50_ms": 89.452,
+        "p95_ms": 101.831,
+        "p99_ms": 101.831,
+        "max_ms": 101.831476,
+        "mean_ms": 90.523
+      },
+      "output_hash": "337772595124868e4b9b870018fe4c545edad07dd580b6e451be1e9367b38ba5"
+    },
+    {
+      "workers": 4,
+      "wall_ms": {
+        "median": 3114.625,
+        "min": 3092.802,
+        "max": 3252.036
+      },
+      "map_phase_ms": {
+        "median": 1926.341,
+        "min": 1876.072,
+        "max": 2058.514
+      },
+      "reduce_phase_ms": {
+        "median": 1189.762,
+        "min": 1181.891,
+        "max": 1216.313
+      },
+      "speedup": 2.04,
+      "ideal_speedup": 4,
+      "efficiency": 0.51,
+      "cpu_saturation": 0.704,
+      "mean_busy_share": 0.704,
+      "dispatch_ms": {
+        "count": 176,
+        "min_ms": 0.130362,
+        "p50_ms": 0.298,
+        "p95_ms": 3.802,
+        "p99_ms": 6.699,
+        "max_ms": 8.410167,
+        "mean_ms": 0.852
+      },
+      "coordinator_handler_ms": 0.442,
+      "coordinator_handler_share": 0,
+      "rpc_calls": 362,
+      "wait_replies": 6,
+      "map_task_ms": {
+        "count": 160,
+        "min_ms": 9.849024,
+        "p50_ms": 44.533,
+        "p95_ms": 68.305,
+        "p99_ms": 84.984,
+        "max_ms": 90.876938,
+        "mean_ms": 45.153
+      },
+      "reduce_task_ms": {
+        "count": 16,
+        "min_ms": 77.278202,
+        "p50_ms": 92.828,
+        "p95_ms": 121.266,
+        "p99_ms": 121.266,
+        "max_ms": 121.265641,
+        "mean_ms": 96.473
+      },
+      "output_hash": "337772595124868e4b9b870018fe4c545edad07dd580b6e451be1e9367b38ba5"
+    },
+    {
+      "workers": 8,
+      "wall_ms": {
+        "median": 2923.757,
+        "min": 2753.285,
+        "max": 3004.011
+      },
+      "map_phase_ms": {
+        "median": 1812.921,
+        "min": 1619.317,
+        "max": 1879.709
+      },
+      "reduce_phase_ms": {
+        "median": 1123.971,
+        "min": 1099.797,
+        "max": 1135.634
+      },
+      "speedup": 2.173,
+      "ideal_speedup": 8,
+      "efficiency": 0.272,
+      "cpu_saturation": 1.185,
+      "mean_busy_share": 0.592,
+      "dispatch_ms": {
+        "count": 176,
+        "min_ms": 0.149371,
+        "p50_ms": 2.05,
+        "p95_ms": 23.679,
+        "p99_ms": 44.77,
+        "max_ms": 55.622114,
+        "mean_ms": 5.511
+      },
+      "coordinator_handler_ms": 0.505,
+      "coordinator_handler_share": 0,
+      "rpc_calls": 373,
+      "wait_replies": 13,
+      "map_task_ms": {
+        "count": 160,
+        "min_ms": 12.953735,
+        "p50_ms": 78.508,
+        "p95_ms": 117.68,
+        "p99_ms": 146.835,
+        "max_ms": 158.538172,
+        "mean_ms": 76.595
+      },
+      "reduce_task_ms": {
+        "count": 16,
+        "min_ms": 81.059277,
+        "p50_ms": 91.831,
+        "p95_ms": 136.489,
+        "p99_ms": 136.489,
+        "max_ms": 136.489335,
+        "mean_ms": 99.966
+      },
+      "output_hash": "337772595124868e4b9b870018fe4c545edad07dd580b6e451be1e9367b38ba5"
+    },
+    {
+      "workers": 16,
+      "wall_ms": {
+        "median": 2700.92,
+        "min": 2580.913,
+        "max": 2782.483
+      },
+      "map_phase_ms": {
+        "median": 1589.65,
+        "min": 1460.464,
+        "max": 1638.934
+      },
+      "reduce_phase_ms": {
+        "median": 1110.975,
+        "min": 1105.974,
+        "max": 1143.076
+      },
+      "speedup": 2.352,
+      "ideal_speedup": 16,
+      "efficiency": 0.147,
+      "cpu_saturation": 1.834,
+      "mean_busy_share": 0.458,
+      "dispatch_ms": {
+        "count": 176,
+        "min_ms": 0.20072,
+        "p50_ms": 10.427,
+        "p95_ms": 70.603,
+        "p99_ms": 101.633,
+        "max_ms": 111.27987,
+        "mean_ms": 19.255
+      },
+      "coordinator_handler_ms": 43.298,
+      "coordinator_handler_share": 0.016,
+      "rpc_calls": 398,
+      "wait_replies": 30,
+      "map_task_ms": {
+        "count": 160,
+        "min_ms": 10.803002,
+        "p50_ms": 100.423,
+        "p95_ms": 221.022,
+        "p99_ms": 233.928,
+        "max_ms": 250.452567,
+        "mean_ms": 113.147
+      },
+      "reduce_task_ms": {
+        "count": 16,
+        "min_ms": 86.019039,
+        "p50_ms": 94.435,
+        "p95_ms": 146.334,
+        "p99_ms": 146.334,
+        "max_ms": 146.334383,
+        "mean_ms": 106.839
+      },
+      "output_hash": "337772595124868e4b9b870018fe4c545edad07dd580b6e451be1e9367b38ba5"
+    }
+  ]
+}

@@ -41,6 +41,7 @@ type Coordinator struct {
 	mapTasksCompleted    int
 	reduceTasksCompleted int
 
+	rpc              RPCStats
 	jobStart         time.Time
 	mapPhaseEnd      time.Time
 	reducePhaseStart time.Time
@@ -63,6 +64,7 @@ func (c *Coordinator) Trace() JobTrace {
 		End:              c.jobEnd,
 		NMap:             c.nMap,
 		NReduce:          c.nReduce,
+		RPC:              c.rpc,
 		Tasks:            tasks,
 	}
 }
@@ -74,8 +76,18 @@ func (c *Coordinator) jobDone() bool {
 
 // RequestTask is the RPC handler for workers asking for a task.
 func (c *Coordinator) RequestTask(args *RequestTaskArgs, reply *RequestTaskReply) error {
+	entered := time.Now()
+
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	c.rpc.RequestCalls++
+	defer func() {
+		c.rpc.RequestTime += time.Since(entered)
+		if reply.TaskType == WaitTask {
+			c.rpc.RequestWaits++
+		}
+	}()
 
 	// First, assign any available Map tasks
 	if c.mapTasksCompleted < c.nMap {
@@ -134,8 +146,13 @@ func (c *Coordinator) RequestTask(args *RequestTaskArgs, reply *RequestTaskReply
 
 // ReportTask is the RPC handler for workers reporting task completion.
 func (c *Coordinator) ReportTask(args *ReportTaskArgs, reply *ReportTaskReply) error {
+	entered := time.Now()
+
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	c.rpc.ReportCalls++
+	defer func() { c.rpc.ReportTime += time.Since(entered) }()
 
 	var tasks []TaskInfo
 	switch args.TaskType {
