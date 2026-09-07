@@ -15,6 +15,13 @@ type Config struct {
 	WaitBackoff  time.Duration // How long a worker sleeps when no task is available
 	WorkDir      string        // Directory holding intermediate and output files
 	SocketPath   string        // Unix socket the coordinator listens on
+
+	// Speculation runs a backup attempt for a task whose elapsed time exceeds
+	// SpeculationThreshold times the median for its phase. The median needs
+	// SpeculationMinSamples completed tasks before it means anything.
+	Speculation           bool
+	SpeculationThreshold  float64
+	SpeculationMinSamples int
 }
 
 // DefaultConfig returns the settings the standalone mrcoordinator binary uses.
@@ -25,6 +32,10 @@ func DefaultConfig(nReduce int) Config {
 		ReapInterval: 2 * time.Second,
 		WaitBackoff:  10 * time.Millisecond,
 		SocketPath:   coordinatorSock(),
+
+		Speculation:           false,
+		SpeculationThreshold:  2.0,
+		SpeculationMinSamples: 5,
 	}
 }
 
@@ -42,6 +53,12 @@ func (c Config) withDefaults() Config {
 	}
 	if c.SocketPath == "" {
 		c.SocketPath = d.SocketPath
+	}
+	if c.SpeculationThreshold <= 0 {
+		c.SpeculationThreshold = d.SpeculationThreshold
+	}
+	if c.SpeculationMinSamples <= 0 {
+		c.SpeculationMinSamples = d.SpeculationMinSamples
 	}
 	return c
 }

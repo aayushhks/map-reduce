@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/rpc"
 	"os"
+	"sort"
 	"sync"
 	"time"
 )
@@ -14,19 +15,32 @@ import (
 type TaskState int
 
 const (
-	Idle       TaskState = iota // 0
-	InProgress                  // 1
-	Completed                   // 2
+	Idle       TaskState = iota // 0, no attempt is running
+	InProgress                  // 1, at least one attempt is running
+	Committing                  // 2, one attempt has been cleared to publish output
+	Completed                   // 3
 )
 
-// TaskInfo holds metadata for a single task.
-type TaskInfo struct {
-	ID        int
-	State     TaskState
-	StartTime time.Time
-	Attempt   int   // Incremented on every assignment, including reassignments
-	Split     Split // The input byte range, only for Map tasks
+// attempt is one execution of a task, either the first or a speculative backup.
+type attempt struct {
+	ID       int
+	WorkerID string
+	Start    time.Time
+	Backup   bool
 }
+
+// TaskInfo holds metadata for a single task. A task may have more than one
+// attempt running at once, but only the committer may publish its output.
+type TaskInfo struct {
+	ID          int
+	State       TaskState
+	Split       Split // The input byte range, only for Map tasks
+	NextAttempt int   // Attempt id to hand out next
+	Live        []attempt
+	Committer   int       // Attempt cleared to publish, meaningful while Committing
+	CommitStart time.Time // When that clearance was given
+}
+
 type Coordinator struct {
 	mu sync.Mutex // Mutex to protect shared state
 
@@ -42,11 +56,18 @@ type Coordinator struct {
 	reduceTasksCompleted int
 
 	rpc              RPCStats
+	backupsLaunched  int64
+	backupsWon       int64
 	jobStart         time.Time
 	mapPhaseEnd      time.Time
 	reducePhaseStart time.Time
 	jobEnd           time.Time
 	taskMetrics      []TaskMetrics
+}
+
+// jobDone reports whether every task has finished. Callers must hold c.mu.
+func (c *Coordinator) jobDone() bool {
+	return c.mapTasksCompleted == c.nMap && c.reduceTasksCompleted == c.nReduce
 }
 
 // Trace returns the recorded timeline of the job so far.
@@ -65,13 +86,10 @@ func (c *Coordinator) Trace() JobTrace {
 		NMap:             c.nMap,
 		NReduce:          c.nReduce,
 		RPC:              c.rpc,
+		BackupsLaunched:  c.backupsLaunched,
+		BackupsWon:       c.backupsWon,
 		Tasks:            tasks,
 	}
-}
-
-// jobDone reports whether every task has finished. Callers must hold c.mu.
-func (c *Coordinator) jobDone() bool {
-	return c.mapTasksCompleted == c.nMap && c.reduceTasksCompleted == c.nReduce
 }
 
 // RequestTask is the RPC handler for workers asking for a task.
@@ -89,62 +107,132 @@ func (c *Coordinator) RequestTask(args *RequestTaskArgs, reply *RequestTaskReply
 		}
 	}()
 
-	// First, assign any available Map tasks
+	reply.WorkDir = c.cfg.WorkDir
+
 	if c.mapTasksCompleted < c.nMap {
-		for i := range c.mapTasks {
-			if c.mapTasks[i].State == Idle {
-				// Found an idle map task, assign it
-				reply.TaskType = MapTask
-				reply.TaskID = c.mapTasks[i].ID
-				reply.Split = c.mapTasks[i].Split
-				reply.NReduce = c.nReduce
-				reply.WorkDir = c.cfg.WorkDir
-
-				c.mapTasks[i].State = InProgress
-				c.mapTasks[i].StartTime = time.Now()
-				c.mapTasks[i].Attempt++
-				reply.Attempt = c.mapTasks[i].Attempt
-				return nil
-			}
+		if c.handOut(c.mapTasks, MapTask, args.WorkerID, reply) {
+			return nil
 		}
-		// If no idle tasks, tell worker to wait
 		reply.TaskType = WaitTask
 		reply.WaitBackoff = c.cfg.WaitBackoff
 		return nil
 	}
 
-	// If all map tasks are done, assign Reduce tasks
 	if c.reduceTasksCompleted < c.nReduce {
-		for i := range c.reduceTasks {
-			if c.reduceTasks[i].State == Idle {
-				// Found an idle reduce task, assign it
-				reply.TaskType = ReduceTask
-				reply.TaskID = c.reduceTasks[i].ID
-				reply.NMap = c.nMap
-				reply.WorkDir = c.cfg.WorkDir
-
-				if c.reducePhaseStart.IsZero() {
-					c.reducePhaseStart = time.Now()
-				}
-				c.reduceTasks[i].State = InProgress
-				c.reduceTasks[i].StartTime = time.Now()
-				c.reduceTasks[i].Attempt++
-				reply.Attempt = c.reduceTasks[i].Attempt
-				return nil
-			}
+		if c.reducePhaseStart.IsZero() {
+			c.reducePhaseStart = time.Now()
 		}
-		// If no idle tasks, tell worker to wait
+		if c.handOut(c.reduceTasks, ReduceTask, args.WorkerID, reply) {
+			return nil
+		}
 		reply.TaskType = WaitTask
 		reply.WaitBackoff = c.cfg.WaitBackoff
 		return nil
 	}
 
-	// If all map and reduce tasks are done, tell worker to exit
+	// All map and reduce tasks are done, tell the worker to exit
 	reply.TaskType = ExitTask
 	return nil
 }
 
-// ReportTask is the RPC handler for workers reporting task completion.
+// handOut gives the worker an idle task, or a backup for a straggler when no
+// idle task is left. Callers must hold c.mu.
+func (c *Coordinator) handOut(tasks []TaskInfo, kind TaskType, workerID string, reply *RequestTaskReply) bool {
+	for i := range tasks {
+		if tasks[i].State == Idle {
+			c.start(&tasks[i], kind, workerID, false, reply)
+			return true
+		}
+	}
+
+	if straggler := c.straggler(tasks, kind, workerID); straggler != nil {
+		c.start(straggler, kind, workerID, true, reply)
+		c.backupsLaunched++
+		return true
+	}
+
+	return false
+}
+
+// start records a new attempt on a task and fills in the reply.
+func (c *Coordinator) start(task *TaskInfo, kind TaskType, workerID string, backup bool, reply *RequestTaskReply) {
+	task.NextAttempt++
+	task.State = InProgress
+	task.Live = append(task.Live, attempt{
+		ID:       task.NextAttempt,
+		WorkerID: workerID,
+		Start:    time.Now(),
+		Backup:   backup,
+	})
+
+	reply.TaskType = kind
+	reply.TaskID = task.ID
+	reply.Attempt = task.NextAttempt
+	reply.Backup = backup
+	if kind == MapTask {
+		reply.Split = task.Split
+		reply.NReduce = c.nReduce
+		return
+	}
+	reply.NMap = c.nMap
+}
+
+// straggler returns a task worth running a second time: one running well past
+// the median for its phase, not already being run by this worker, and not
+// already backed up. Callers must hold c.mu.
+func (c *Coordinator) straggler(tasks []TaskInfo, kind TaskType, workerID string) *TaskInfo {
+	if !c.cfg.Speculation {
+		return nil
+	}
+
+	cutoff, ok := c.stragglerCutoff(kind)
+	if !ok {
+		return nil
+	}
+
+	var worst *TaskInfo
+	var worstElapsed time.Duration
+
+	for i := range tasks {
+		task := &tasks[i]
+		if task.State != InProgress || len(task.Live) != 1 {
+			continue
+		}
+		if task.Live[0].WorkerID == workerID {
+			continue
+		}
+
+		elapsed := time.Since(task.Live[0].Start)
+		if elapsed > cutoff && elapsed > worstElapsed {
+			worst, worstElapsed = task, elapsed
+		}
+	}
+
+	return worst
+}
+
+// stragglerCutoff is the elapsed time past which a running task of this kind
+// counts as a straggler. It needs enough completed tasks for the median to mean
+// something. Callers must hold c.mu.
+func (c *Coordinator) stragglerCutoff(kind TaskType) (time.Duration, bool) {
+	durations := []time.Duration{}
+	for _, m := range c.taskMetrics {
+		if m.TaskType == kind {
+			durations = append(durations, m.Duration())
+		}
+	}
+	if len(durations) < c.cfg.SpeculationMinSamples {
+		return 0, false
+	}
+
+	sort.Slice(durations, func(a, b int) bool { return durations[a] < durations[b] })
+	median := durations[len(durations)/2]
+
+	return time.Duration(float64(median) * c.cfg.SpeculationThreshold), true
+}
+
+// ReportTask is a worker asking permission to publish the output it just built.
+// Exactly one attempt per task is cleared, so a losing backup never writes.
 func (c *Coordinator) ReportTask(args *ReportTaskArgs, reply *ReportTaskReply) error {
 	entered := time.Now()
 
@@ -154,30 +242,50 @@ func (c *Coordinator) ReportTask(args *ReportTaskArgs, reply *ReportTaskReply) e
 	c.rpc.ReportCalls++
 	defer func() { c.rpc.ReportTime += time.Since(entered) }()
 
-	var tasks []TaskInfo
-	switch args.TaskType {
-	case MapTask:
-		tasks = c.mapTasks
-	case ReduceTask:
-		tasks = c.reduceTasks
-	default:
-		log.Printf("Unknown task type reported: %v", args.TaskType)
+	task := c.task(args.TaskType, args.TaskID)
+	if task == nil {
 		return nil
 	}
 
-	if args.TaskID < 0 || args.TaskID >= len(tasks) {
-		log.Printf("Task id out of range reported: %v", args.TaskID)
+	// Another attempt already won, or this attempt was reaped as timed out.
+	if task.State != InProgress || !task.isLive(args.Attempt) {
+		reply.Commit = false
 		return nil
 	}
 
-	// A task that timed out has already been handed to another worker, so only
-	// the attempt currently in progress is allowed to complete it.
-	task := &tasks[args.TaskID]
-	if task.State != InProgress || task.Attempt != args.Attempt {
+	task.State = Committing
+	task.Committer = args.Attempt
+	task.CommitStart = time.Now()
+	reply.Commit = true
+
+	return nil
+}
+
+// CommitTask is the committer confirming its output is in place. Only now is
+// the task counted as done, so a worker that dies mid rename is re-run.
+func (c *Coordinator) CommitTask(args *CommitTaskArgs, reply *CommitTaskReply) error {
+	entered := time.Now()
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.rpc.ReportCalls++
+	defer func() { c.rpc.ReportTime += time.Since(entered) }()
+
+	task := c.task(args.TaskType, args.TaskID)
+	if task == nil {
 		return nil
+	}
+	if task.State != Committing || task.Committer != args.Attempt {
+		return nil
+	}
+
+	if args.Metrics.Backup {
+		c.backupsWon++
 	}
 
 	task.State = Completed
+	task.Live = nil
 	c.taskMetrics = append(c.taskMetrics, args.Metrics)
 
 	if args.TaskType == MapTask {
@@ -185,22 +293,44 @@ func (c *Coordinator) ReportTask(args *ReportTaskArgs, reply *ReportTaskReply) e
 		if c.mapTasksCompleted == c.nMap {
 			c.mapPhaseEnd = time.Now()
 		}
-	} else {
-		c.reduceTasksCompleted++
-		if c.reduceTasksCompleted == c.nReduce {
-			c.jobEnd = time.Now()
-		}
+		return nil
 	}
 
+	c.reduceTasksCompleted++
+	if c.reduceTasksCompleted == c.nReduce {
+		c.jobEnd = time.Now()
+	}
 	return nil
 }
 
-// an example RPC handler.
-// the RPC argument and reply types are defined in rpc.go.
+// task looks up a task by kind and id, or nil if the id is out of range.
+func (c *Coordinator) task(kind TaskType, id int) *TaskInfo {
+	var tasks []TaskInfo
+	switch kind {
+	case MapTask:
+		tasks = c.mapTasks
+	case ReduceTask:
+		tasks = c.reduceTasks
+	default:
+		log.Printf("Unknown task type reported: %v", kind)
+		return nil
+	}
 
-func (c *Coordinator) Example(args *ExampleArgs, reply *ExampleReply) error {
-	reply.Y = args.X + 1
-	return nil
+	if id < 0 || id >= len(tasks) {
+		log.Printf("Task id out of range reported: %v", id)
+		return nil
+	}
+	return &tasks[id]
+}
+
+// isLive reports whether the attempt is still one of this task's running ones.
+func (t *TaskInfo) isLive(id int) bool {
+	for _, a := range t.Live {
+		if a.ID == id {
+			return true
+		}
+	}
+	return false
 }
 
 // start a thread that listens for RPCs from worker.go
@@ -233,7 +363,6 @@ func (c *Coordinator) Shutdown() {
 
 // mr-main/mrcoordinator.go calls Done() periodically to find out
 // if the entire job has finished.
-
 func (c *Coordinator) Done() bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -256,23 +385,48 @@ func (c *Coordinator) checkTimeouts() {
 	}
 }
 
-// reapTimeouts makes one pass over the in-progress tasks and reassigns any that
-// have run past the timeout.
+// reapTimeouts makes one pass over the running tasks and drops any attempt that
+// has run past the timeout. A task with no attempts left goes back to idle.
 func (c *Coordinator) reapTimeouts() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	for i := range c.mapTasks {
-		if c.mapTasks[i].State == InProgress && time.Since(c.mapTasks[i].StartTime) > c.cfg.TaskTimeout {
-			log.Printf("Map task %d timed out. Reassigning.", i)
-			c.mapTasks[i].State = Idle
-		}
-	}
+	c.reap(c.mapTasks, "Map")
+	c.reap(c.reduceTasks, "Reduce")
+}
 
-	for i := range c.reduceTasks {
-		if c.reduceTasks[i].State == InProgress && time.Since(c.reduceTasks[i].StartTime) > c.cfg.TaskTimeout {
-			log.Printf("Reduce task %d timed out. Reassigning.", i)
-			c.reduceTasks[i].State = Idle
+// reap drops expired attempts from one phase. Callers must hold c.mu.
+func (c *Coordinator) reap(tasks []TaskInfo, label string) {
+	for i := range tasks {
+		task := &tasks[i]
+
+		// A committer that died mid rename leaves the task unfinished, so put
+		// the whole task back rather than trusting output that may not exist.
+		if task.State == Committing {
+			if time.Since(task.CommitStart) > c.cfg.TaskTimeout {
+				log.Printf("%s task %d stalled while committing. Reassigning.", label, task.ID)
+				task.State = Idle
+				task.Live = nil
+			}
+			continue
+		}
+
+		if task.State != InProgress {
+			continue
+		}
+
+		live := task.Live[:0]
+		for _, a := range task.Live {
+			if time.Since(a.Start) > c.cfg.TaskTimeout {
+				log.Printf("%s task %d attempt %d timed out. Reassigning.", label, task.ID, a.ID)
+				continue
+			}
+			live = append(live, a)
+		}
+		task.Live = live
+
+		if len(task.Live) == 0 {
+			task.State = Idle
 		}
 	}
 }
@@ -280,7 +434,6 @@ func (c *Coordinator) reapTimeouts() {
 // create a Coordinator.
 // mr-main/mrcoordinator.go calls this function.
 // nReduce is the number of reduce tasks to use.
-
 func MakeCoordinator(files []string, nReduce int) *Coordinator {
 	return MakeCoordinatorWithConfig(files, DefaultConfig(nReduce))
 }
@@ -305,19 +458,12 @@ func MakeCoordinatorWithConfig(files []string, cfg Config) *Coordinator {
 
 	// Initialize map tasks, one per input split
 	for i, split := range splits {
-		c.mapTasks[i] = TaskInfo{
-			ID:    i,
-			State: Idle,
-			Split: split,
-		}
+		c.mapTasks[i] = TaskInfo{ID: i, State: Idle, Split: split}
 	}
 
 	// Initialize reduce tasks
 	for i := 0; i < cfg.NReduce; i++ {
-		c.reduceTasks[i] = TaskInfo{
-			ID:    i,
-			State: Idle,
-		}
+		c.reduceTasks[i] = TaskInfo{ID: i, State: Idle}
 	}
 
 	log.Printf("Coordinator initialized with %d map tasks and %d reduce tasks.", c.nMap, c.nReduce)

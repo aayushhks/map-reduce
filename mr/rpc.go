@@ -45,22 +45,36 @@ type RequestTaskReply struct {
 	NReduce     int           // The number of reduce partitions, needed by Map tasks
 	NMap        int           // The number of map tasks, needed by Reduce tasks
 	Attempt     int           // Which attempt at this task the worker was handed
+	Backup      bool          // Whether this attempt is a speculative backup
 	WorkDir     string        // Directory holding intermediate and output files
 	WaitBackoff time.Duration // How long to sleep before asking again after a WaitTask
 }
 
 // ReportTaskArgs is the argument struct for the worker to report a completed task.
 type ReportTaskArgs struct {
-	TaskID   int         // The ID of the completed task
-	TaskType TaskType    // The type of the completed task
-	Attempt  int         // The attempt the worker was handed, to reject stale reports
-	WorkerID string      // The ID of the worker reporting completion
-	Metrics  TaskMetrics // What the worker measured while running the task
+	TaskID   int      // The ID of the completed task
+	TaskType TaskType // The type of the completed task
+	Attempt  int      // The attempt the worker was handed, to reject stale reports
+	WorkerID string   // The ID of the worker reporting completion
 }
 
-// ReportTaskReply is the reply from the coordinator after a worker reports a task.
-// It can be empty; the RPC call itself is the acknowledgment.
+// ReportTaskReply tells the worker whether it won the right to publish its
+// output. A losing backup throws its work away instead of writing.
 type ReportTaskReply struct {
+	Commit bool
+}
+
+// CommitTaskArgs is the committer confirming its output is in place.
+type CommitTaskArgs struct {
+	TaskID   int
+	TaskType TaskType
+	Attempt  int
+	WorkerID string
+	Metrics  TaskMetrics
+}
+
+// CommitTaskReply is empty; the RPC call itself is the acknowledgment.
+type CommitTaskReply struct {
 }
 
 // Cook up a unique-ish UNIX-domain socket name

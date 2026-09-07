@@ -19,6 +19,7 @@ type TaskMetrics struct {
 	InputBytes  int64
 	OutputBytes int64
 	Records     int64
+	Backup      bool // Whether this attempt was a speculative backup
 }
 
 // Duration is how long the whole task attempt took.
@@ -46,6 +47,8 @@ type JobTrace struct {
 	NMap             int
 	NReduce          int
 	RPC              RPCStats
+	BackupsLaunched  int64
+	BackupsWon       int64
 	Tasks            []TaskMetrics
 }
 
