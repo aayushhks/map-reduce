@@ -1,18 +1,15 @@
 package main
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"math/rand"
 	"os"
 	"path/filepath"
-	"sort"
-	"strings"
 	"sync"
 	"time"
 
 	"cs651/mr"
+	"cs651/verify"
 	"cs651/workload"
 )
 
@@ -105,41 +102,10 @@ func runJob(cfg RunConfig) (RunResult, error) {
 			len(trace.Tasks), cfg.NReduce)
 	}
 
-	hash, keys, err := hashOutput(cfg.WorkDir)
+	hash, keys, err := verify.OutputHash(cfg.WorkDir)
 	if err != nil {
 		return RunResult{}, err
 	}
 
 	return RunResult{Trace: trace, OutputHash: hash, OutputKeys: keys}, nil
-}
-
-// hashOutput returns a hash of every output line, sorted so the digest does not
-// depend on which reduce task produced which key.
-func hashOutput(dir string) (string, int, error) {
-	paths, err := filepath.Glob(filepath.Join(dir, "mr-out-*"))
-	if err != nil {
-		return "", 0, fmt.Errorf("list output: %w", err)
-	}
-
-	lines := []string{}
-	for _, p := range paths {
-		content, err := os.ReadFile(p)
-		if err != nil {
-			return "", 0, fmt.Errorf("read output %v: %w", p, err)
-		}
-		for _, line := range strings.Split(string(content), "\n") {
-			if line != "" {
-				lines = append(lines, line)
-			}
-		}
-	}
-	sort.Strings(lines)
-
-	sum := sha256.New()
-	for _, line := range lines {
-		sum.Write([]byte(line))
-		sum.Write([]byte{'\n'})
-	}
-
-	return hex.EncodeToString(sum.Sum(nil)), len(lines), nil
 }
