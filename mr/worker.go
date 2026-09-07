@@ -101,6 +101,10 @@ func Worker(mapf func(string, string) []KeyValue,
 func RunWorker(mapf func(string, string) []KeyValue,
 	reducef func(string, []string) string, opts WorkerOptions) {
 
+	if opts.ID == "" {
+		opts.ID = defaultWorkerID()
+	}
+
 	w := &worker{
 		id:        opts.ID,
 		sock:      opts.SocketPath,
@@ -113,6 +117,16 @@ func RunWorker(mapf func(string, string) []KeyValue,
 		w.sock = coordinatorSock()
 	}
 	w.run()
+}
+
+// defaultWorkerID names a worker that was started without one, so logs and
+// traces from a standalone run still say which process did what.
+func defaultWorkerID() string {
+	host, err := os.Hostname()
+	if err != nil {
+		host = "worker"
+	}
+	return fmt.Sprintf("%s-%d", host, os.Getpid())
 }
 
 // run asks for work until the job is done or the coordinator goes away.
