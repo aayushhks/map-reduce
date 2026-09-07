@@ -47,7 +47,13 @@ type ScalingPoint struct {
 
 	MapTaskMS    Distribution `json:"map_task_ms"`
 	ReduceTaskMS Distribution `json:"reduce_task_ms"`
-	OutputHash   string       `json:"output_hash"`
+
+	// IO share is time spent reading inputs and writing outputs over total task
+	// time. A phase that stays slow while its IO share stays high is bound by
+	// the shuffle, not by cores.
+	MapIOShare    float64 `json:"map_io_share"`
+	ReduceIOShare float64 `json:"reduce_io_share"`
+	OutputHash    string  `json:"output_hash"`
 }
 
 // buildScalingPoint summarises every trial at one worker count.
@@ -66,6 +72,7 @@ func buildScalingPoint(workers int, results []RunResult, trials []Trial) Scaling
 	jobWall := trace.End.Sub(trace.Start)
 
 	var busy, dispatchTotal time.Duration
+	var mapIO, mapTotal, reduceIO, reduceTotal time.Duration
 	dispatches := []time.Duration{}
 	mapDurations := []time.Duration{}
 	reduceDurations := []time.Duration{}
@@ -79,9 +86,13 @@ func buildScalingPoint(workers int, results []RunResult, trials []Trial) Scaling
 
 		if task.TaskType == mr.MapTask {
 			mapDurations = append(mapDurations, task.Duration())
+			mapIO += task.IO
+			mapTotal += task.Duration()
 			continue
 		}
 		reduceDurations = append(reduceDurations, task.Duration())
+		reduceIO += task.IO
+		reduceTotal += task.Duration()
 	}
 
 	meanBusyShare := 0.0
@@ -119,8 +130,18 @@ func buildScalingPoint(workers int, results []RunResult, trials []Trial) Scaling
 		WaitReplies:      trace.RPC.RequestWaits,
 		MapTaskMS:        describe(mapDurations),
 		ReduceTaskMS:     describe(reduceDurations),
+		MapIOShare:       shareOf(mapIO, mapTotal),
+		ReduceIOShare:    shareOf(reduceIO, reduceTotal),
 		OutputHash:       median.OutputHash,
 	}
+}
+
+// shareOf is part over whole, guarding against an empty phase.
+func shareOf(part, whole time.Duration) float64 {
+	if whole <= 0 {
+		return 0
+	}
+	return round(float64(part) / float64(whole))
 }
 
 // fillSpeedups sets speedup and efficiency relative to the smallest worker
