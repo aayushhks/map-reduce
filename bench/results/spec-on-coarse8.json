@@ -1,0 +1,458 @@
+{
+  "schema": "mapreduce-bench/v1",
+  "generated_at": "2026-09-07T19:59:00Z",
+  "environment": {
+    "goos": "linux",
+    "goarch": "amd64",
+    "go_version": "go1.24.7",
+    "num_cpu": 4,
+    "gomaxprocs": 4,
+    "placement": "single machine, coordinator and workers in one process over unix socket rpc"
+  },
+  "config": {
+    "dataset": "project gutenberg 8 books, concatenated 20x",
+    "input_glob": "/tmp/claude-0/-home-user-map-reduce/fca9a27d-5d91-52dd-9572-26fc60c06a11/scratchpad/corpus-big/*.txt",
+    "workload": "invertedindex",
+    "workers": 4,
+    "n_reduce": 16,
+    "split_bytes": 0,
+    "wait_backoff_ms": 10,
+    "speculation": true,
+    "speculation_threshold": 2,
+    "slow_workers": 1,
+    "slow_factor": 5,
+    "seed": 1,
+    "trials": 5,
+    "input_files": 8,
+    "input_bytes": 66022080,
+    "map_tasks": 8
+  },
+  "trials": [
+    {
+      "index": 0,
+      "wall_ms": 1310.247,
+      "map_phase_ms": 1277.379,
+      "shuffle_stall_ms": 0.029,
+      "reduce_phase_ms": 32.839,
+      "bytes_shuffled": 2274238,
+      "intermediate_files": 128,
+      "records_emitted": 47687,
+      "output_keys": 19436,
+      "backups_launched": 1,
+      "backups_won": 1,
+      "output_hash": "53ae1a3d57d7a8141976e7729c6344836892999e44317e81da336681e68ebcc1",
+      "map_task_ms": {
+        "count": 8,
+        "min_ms": 142.416957,
+        "p50_ms": 373.23,
+        "p95_ms": 679.349,
+        "p99_ms": 679.349,
+        "max_ms": 679.348681,
+        "mean_ms": 422.712
+      },
+      "reduce_task_ms": {
+        "count": 16,
+        "min_ms": 4.421113,
+        "p50_ms": 5.013,
+        "p95_ms": 6.088,
+        "p99_ms": 6.088,
+        "max_ms": 6.08799,
+        "mean_ms": 5.095
+      }
+    },
+    {
+      "index": 1,
+      "wall_ms": 985.784,
+      "map_phase_ms": 946.755,
+      "shuffle_stall_ms": 0.208,
+      "reduce_phase_ms": 38.822,
+      "bytes_shuffled": 2274238,
+      "intermediate_files": 128,
+      "records_emitted": 47687,
+      "output_keys": 19436,
+      "backups_launched": 1,
+      "backups_won": 1,
+      "output_hash": "53ae1a3d57d7a8141976e7729c6344836892999e44317e81da336681e68ebcc1",
+      "map_task_ms": {
+        "count": 8,
+        "min_ms": 89.907558,
+        "p50_ms": 364.68,
+        "p95_ms": 462.44,
+        "p99_ms": 462.44,
+        "max_ms": 462.439706,
+        "mean_ms": 305.356
+      },
+      "reduce_task_ms": {
+        "count": 16,
+        "min_ms": 4.539577,
+        "p50_ms": 5.196,
+        "p95_ms": 5.745,
+        "p99_ms": 5.745,
+        "max_ms": 5.744705,
+        "mean_ms": 5.198
+      }
+    },
+    {
+      "index": 2,
+      "wall_ms": 1055.412,
+      "map_phase_ms": 1010.945,
+      "shuffle_stall_ms": 0.458,
+      "reduce_phase_ms": 44.009,
+      "bytes_shuffled": 2274238,
+      "intermediate_files": 128,
+      "records_emitted": 47687,
+      "output_keys": 19436,
+      "backups_launched": 1,
+      "backups_won": 1,
+      "output_hash": "53ae1a3d57d7a8141976e7729c6344836892999e44317e81da336681e68ebcc1",
+      "map_task_ms": {
+        "count": 8,
+        "min_ms": 174.300004,
+        "p50_ms": 367.303,
+        "p95_ms": 477.75,
+        "p99_ms": 477.75,
+        "max_ms": 477.75036,
+        "mean_ms": 345.267
+      },
+      "reduce_task_ms": {
+        "count": 16,
+        "min_ms": 4.563079,
+        "p50_ms": 5.524,
+        "p95_ms": 9.007,
+        "p99_ms": 9.007,
+        "max_ms": 9.006709,
+        "mean_ms": 6.124
+      }
+    },
+    {
+      "index": 3,
+      "wall_ms": 1059.563,
+      "map_phase_ms": 1021.286,
+      "shuffle_stall_ms": 0.39,
+      "reduce_phase_ms": 37.886,
+      "bytes_shuffled": 2274238,
+      "intermediate_files": 128,
+      "records_emitted": 47687,
+      "output_keys": 19436,
+      "backups_launched": 1,
+      "backups_won": 1,
+      "output_hash": "53ae1a3d57d7a8141976e7729c6344836892999e44317e81da336681e68ebcc1",
+      "map_task_ms": {
+        "count": 8,
+        "min_ms": 96.288276,
+        "p50_ms": 351.767,
+        "p95_ms": 583.504,
+        "p99_ms": 583.504,
+        "max_ms": 583.503595,
+        "mean_ms": 368.002
+      },
+      "reduce_task_ms": {
+        "count": 16,
+        "min_ms": 4.633293,
+        "p50_ms": 5.213,
+        "p95_ms": 6.173,
+        "p99_ms": 6.173,
+        "max_ms": 6.173427,
+        "mean_ms": 5.311
+      }
+    },
+    {
+      "index": 4,
+      "wall_ms": 802.149,
+      "map_phase_ms": 766.606,
+      "shuffle_stall_ms": 0.353,
+      "reduce_phase_ms": 35.19,
+      "bytes_shuffled": 2274238,
+      "intermediate_files": 128,
+      "records_emitted": 47687,
+      "output_keys": 19436,
+      "backups_launched": 2,
+      "backups_won": 1,
+      "output_hash": "53ae1a3d57d7a8141976e7729c6344836892999e44317e81da336681e68ebcc1",
+      "map_task_ms": {
+        "count": 8,
+        "min_ms": 85.483336,
+        "p50_ms": 262.256,
+        "p95_ms": 451.931,
+        "p99_ms": 451.931,
+        "max_ms": 451.930671,
+        "mean_ms": 270.296
+      },
+      "reduce_task_ms": {
+        "count": 16,
+        "min_ms": 4.790465,
+        "p50_ms": 5.39,
+        "p95_ms": 28.402,
+        "p99_ms": 28.402,
+        "max_ms": 28.402337,
+        "mean_ms": 7.049
+      }
+    }
+  ],
+  "summary": {
+    "wall_ms": {
+      "median": 1055.412,
+      "min": 802.149,
+      "max": 1310.247
+    },
+    "map_phase_ms": {
+      "median": 1010.945,
+      "min": 766.606,
+      "max": 1277.379
+    },
+    "shuffle_stall_ms": {
+      "median": 0.353,
+      "min": 0.029,
+      "max": 0.458
+    },
+    "reduce_phase_ms": {
+      "median": 37.886,
+      "min": 32.839,
+      "max": 44.009
+    },
+    "records_per_sec": {
+      "median": 45183.303,
+      "min": 36395.428,
+      "max": 59449.055
+    },
+    "input_bytes_per_sec": {
+      "median": 62555741.265,
+      "min": 50389033.518,
+      "max": 82306504.153
+    },
+    "map_task_ms_pooled": {
+      "count": 40,
+      "min_ms": 85.483336,
+      "p50_ms": 361.499,
+      "p95_ms": 583.504,
+      "p99_ms": 679.349,
+      "max_ms": 679.348681,
+      "mean_ms": 342.327
+    },
+    "reduce_task_ms_pooled": {
+      "count": 80,
+      "min_ms": 4.421113,
+      "p50_ms": 5.214,
+      "p95_ms": 7.872,
+      "p99_ms": 28.402,
+      "max_ms": 28.402337,
+      "mean_ms": 5.756
+    },
+    "output_hash": "53ae1a3d57d7a8141976e7729c6344836892999e44317e81da336681e68ebcc1",
+    "output_hash_stable_across_trials": true,
+    "worker_utilization": [
+      {
+        "worker_id": "worker-1",
+        "tasks": 9,
+        "busy_ms": 945.714,
+        "busy_share": 0.896
+      },
+      {
+        "worker_id": "worker-2",
+        "tasks": 8,
+        "busy_ms": 1038.398,
+        "busy_share": 0.984
+      },
+      {
+        "worker_id": "worker-3",
+        "tasks": 7,
+        "busy_ms": 876.009,
+        "busy_share": 0.83
+      }
+    ]
+  },
+  "median_trial_timeline": [
+    {
+      "worker_id": "worker-2",
+      "phase": "map",
+      "task_id": 0,
+      "attempt": 1,
+      "start_ms": 1.055,
+      "end_ms": 175.355
+    },
+    {
+      "worker_id": "worker-1",
+      "phase": "map",
+      "task_id": 1,
+      "attempt": 1,
+      "start_ms": 1.129,
+      "end_ms": 247.818
+    },
+    {
+      "worker_id": "worker-3",
+      "phase": "map",
+      "task_id": 2,
+      "attempt": 1,
+      "start_ms": 1.153,
+      "end_ms": 368.456
+    },
+    {
+      "worker_id": "worker-2",
+      "phase": "map",
+      "task_id": 4,
+      "attempt": 1,
+      "start_ms": 175.708,
+      "end_ms": 588.743
+    },
+    {
+      "worker_id": "worker-1",
+      "phase": "map",
+      "task_id": 5,
+      "attempt": 1,
+      "start_ms": 248.291,
+      "end_ms": 655.193
+    },
+    {
+      "worker_id": "worker-3",
+      "phase": "map",
+      "task_id": 6,
+      "attempt": 1,
+      "start_ms": 368.756,
+      "end_ms": 846.507
+    },
+    {
+      "worker_id": "worker-2",
+      "phase": "map",
+      "task_id": 7,
+      "attempt": 1,
+      "start_ms": 589.153,
+      "end_ms": 1007.379
+    },
+    {
+      "worker_id": "worker-1",
+      "phase": "map",
+      "task_id": 3,
+      "attempt": 2,
+      "start_ms": 752.72,
+      "end_ms": 1010.648
+    },
+    {
+      "worker_id": "worker-1",
+      "phase": "reduce",
+      "task_id": 0,
+      "attempt": 1,
+      "start_ms": 1011.599,
+      "end_ms": 1017.12
+    },
+    {
+      "worker_id": "worker-1",
+      "phase": "reduce",
+      "task_id": 1,
+      "attempt": 1,
+      "start_ms": 1017.909,
+      "end_ms": 1022.813
+    },
+    {
+      "worker_id": "worker-3",
+      "phase": "reduce",
+      "task_id": 2,
+      "attempt": 1,
+      "start_ms": 1018.052,
+      "end_ms": 1023.575
+    },
+    {
+      "worker_id": "worker-2",
+      "phase": "reduce",
+      "task_id": 3,
+      "attempt": 1,
+      "start_ms": 1019.506,
+      "end_ms": 1024.778
+    },
+    {
+      "worker_id": "worker-1",
+      "phase": "reduce",
+      "task_id": 4,
+      "attempt": 1,
+      "start_ms": 1023.12,
+      "end_ms": 1028.118
+    },
+    {
+      "worker_id": "worker-3",
+      "phase": "reduce",
+      "task_id": 5,
+      "attempt": 1,
+      "start_ms": 1023.978,
+      "end_ms": 1030.139
+    },
+    {
+      "worker_id": "worker-2",
+      "phase": "reduce",
+      "task_id": 6,
+      "attempt": 1,
+      "start_ms": 1025.478,
+      "end_ms": 1030.45
+    },
+    {
+      "worker_id": "worker-1",
+      "phase": "reduce",
+      "task_id": 7,
+      "attempt": 1,
+      "start_ms": 1028.567,
+      "end_ms": 1033.13
+    },
+    {
+      "worker_id": "worker-3",
+      "phase": "reduce",
+      "task_id": 8,
+      "attempt": 1,
+      "start_ms": 1030.61,
+      "end_ms": 1035.219
+    },
+    {
+      "worker_id": "worker-2",
+      "phase": "reduce",
+      "task_id": 9,
+      "attempt": 1,
+      "start_ms": 1030.801,
+      "end_ms": 1037.14
+    },
+    {
+      "worker_id": "worker-1",
+      "phase": "reduce",
+      "task_id": 10,
+      "attempt": 1,
+      "start_ms": 1033.536,
+      "end_ms": 1041.408
+    },
+    {
+      "worker_id": "worker-3",
+      "phase": "reduce",
+      "task_id": 11,
+      "attempt": 1,
+      "start_ms": 1035.527,
+      "end_ms": 1041.537
+    },
+    {
+      "worker_id": "worker-2",
+      "phase": "reduce",
+      "task_id": 12,
+      "attempt": 1,
+      "start_ms": 1038.069,
+      "end_ms": 1047.075
+    },
+    {
+      "worker_id": "worker-1",
+      "phase": "reduce",
+      "task_id": 13,
+      "attempt": 1,
+      "start_ms": 1041.821,
+      "end_ms": 1048.156
+    },
+    {
+      "worker_id": "worker-3",
+      "phase": "reduce",
+      "task_id": 14,
+      "attempt": 1,
+      "start_ms": 1041.863,
+      "end_ms": 1050.514
+    },
+    {
+      "worker_id": "worker-2",
+      "phase": "reduce",
+      "task_id": 15,
+      "attempt": 1,
+      "start_ms": 1047.912,
+      "end_ms": 1055.159
+    }
+  ]
+}
