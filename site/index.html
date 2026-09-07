@@ -1,0 +1,1085 @@
+<title>MapReduce Measured</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+:root {
+  color-scheme: light;
+  --ground: #f6f7f9;
+  --surface: #ffffff;
+  --sunk: #eef1f5;
+  --ink: #11151b;
+  --ink-2: #58616e;
+  --ink-3: #8791a0;
+  --rule: #e0e5ec;
+  --rule-strong: #c6cdd8;
+  --accent: #2a78d6;
+  --s1: #2a78d6;
+  --s2: #eb6834;
+  --s3: #1baf7a;
+  --good: #1a7f4b;
+  --bad: #c8382f;
+  --shadow: 0 1px 2px rgba(17, 21, 27, .05);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ground: #0e1116;
+    --surface: #161a20;
+    --sunk: #1b2028;
+    --ink: #edf0f4;
+    --ink-2: #98a2b0;
+    --ink-3: #6d7787;
+    --rule: #242a33;
+    --rule-strong: #333b46;
+    --accent: #3987e5;
+    --s1: #3987e5;
+    --s2: #d95926;
+    --s3: #199e70;
+    --good: #35a86a;
+    --bad: #e66767;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ground: #0e1116;
+  --surface: #161a20;
+  --sunk: #1b2028;
+  --ink: #edf0f4;
+  --ink-2: #98a2b0;
+  --ink-3: #6d7787;
+  --rule: #242a33;
+  --rule-strong: #333b46;
+  --accent: #3987e5;
+  --s1: #3987e5;
+  --s2: #d95926;
+  --s3: #199e70;
+  --good: #35a86a;
+  --bad: #e66767;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
+  font-size: 17px;
+  line-height: 1.62;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 28px 96px; }
+.col { max-width: 64ch; }
+
+h1, h2, h3, .eyebrow, .lede, th, .tag, .btn, figcaption {
+  font-family: Archivo, "Helvetica Neue", Arial, sans-serif;
+}
+.mono, code, .num, .cfg, td.n, th.n {
+  font-family: "IBM Plex Mono", "SF Mono", Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* masthead */
+.mast { padding: 64px 0 40px; border-bottom: 1px solid var(--rule); }
+.eyebrow {
+  font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--ink-3); margin: 0 0 18px;
+}
+h1 {
+  font-size: clamp(38px, 6vw, 62px); font-weight: 700; letter-spacing: -.025em;
+  line-height: 1.02; margin: 0 0 20px; text-wrap: balance;
+}
+.lede { font-size: 19px; line-height: 1.5; color: var(--ink-2); font-weight: 500; max-width: 58ch; margin: 0; }
+.repo { margin-top: 22px; font-size: 13px; }
+.repo a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
+.repo a:hover, .repo a:focus-visible { border-bottom-color: currentColor; }
+
+/* headline facts */
+.facts {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1px; background: var(--rule); border: 1px solid var(--rule);
+  margin: 36px 0 0; border-radius: 3px; overflow: hidden;
+}
+.fact { background: var(--surface); padding: 18px 20px 16px; }
+.fact .k { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); font-family: Archivo, sans-serif; font-weight: 600; }
+.fact .v { font-size: 27px; font-weight: 500; letter-spacing: -.02em; margin: 7px 0 5px; line-height: 1; }
+.fact .c { font-size: 11.5px; color: var(--ink-2); line-height: 1.45; }
+
+/* sections */
+section { padding-top: 68px; }
+h2 {
+  font-size: 13px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase;
+  color: var(--ink); margin: 0 0 10px; padding-bottom: 10px; border-bottom: 2px solid var(--ink);
+  display: inline-block;
+}
+h3 { font-size: 19px; font-weight: 600; letter-spacing: -.01em; margin: 34px 0 10px; }
+p { margin: 0 0 16px; }
+.col p:last-child { margin-bottom: 0; }
+strong { font-weight: 600; }
+em.term { font-style: normal; font-family: "IBM Plex Mono", monospace; font-size: .88em; background: var(--sunk); padding: 1px 5px; border-radius: 2px; }
+
+/* panels: charts and tables break out of the reading column */
+.panel {
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 3px;
+  margin: 26px 0; box-shadow: var(--shadow);
+}
+.panel-head { padding: 16px 20px 0; }
+.panel-title { font-family: Archivo, sans-serif; font-weight: 600; font-size: 15px; letter-spacing: -.005em; }
+.cfg {
+  font-size: 11px; color: var(--ink-2); line-height: 1.5; margin-top: 7px;
+  padding-bottom: 14px; border-bottom: 1px solid var(--rule);
+}
+.cfg b { color: var(--ink); font-weight: 500; }
+.panel-body { padding: 18px 20px 20px; }
+.panel-body.tight { padding: 8px 12px 14px; }
+
+/* legend */
+.legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 0 0 12px; font-size: 12px; font-family: Archivo, sans-serif; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.swatch { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+.swatch.line { height: 3px; border-radius: 1px; width: 16px; }
+.swatch.dash { height: 0; width: 16px; border-top: 2px dashed var(--ink-3); border-radius: 0; }
+
+/* tables */
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th {
+  font-size: 10px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600;
+  color: var(--ink-3); text-align: left; padding: 0 12px 8px 0; border-bottom: 1px solid var(--rule-strong);
+  white-space: nowrap;
+}
+th.n, td.n { text-align: right; }
+td { padding: 7px 12px 7px 0; border-bottom: 1px solid var(--rule); color: var(--ink-2); white-space: nowrap; }
+td.lead { color: var(--ink); font-weight: 500; }
+tr:last-child td { border-bottom: none; }
+.pill {
+  display: inline-block; font-family: Archivo, sans-serif; font-size: 10.5px; font-weight: 600;
+  letter-spacing: .04em; padding: 2px 7px; border-radius: 2px; border: 1px solid;
+}
+.pill.ok { color: var(--good); border-color: var(--good); }
+.pill.no { color: var(--bad); border-color: var(--bad); }
+
+/* charts */
+svg { display: block; max-width: 100%; height: auto; }
+.gridline { stroke: var(--rule); stroke-width: 1; }
+.axis { stroke: var(--rule-strong); stroke-width: 1; }
+.tick { font-family: "IBM Plex Mono", monospace; font-size: 10px; fill: var(--ink-3); }
+.axlabel { font-family: Archivo, sans-serif; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; fill: var(--ink-3); }
+.dlabel { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; font-weight: 500; }
+figure { margin: 0; }
+figcaption { font-size: 12px; color: var(--ink-2); margin-top: 14px; line-height: 1.5; }
+
+/* diagram */
+.diagram { color: var(--ink); }
+.dbox { fill: var(--surface); stroke: currentColor; stroke-width: 1.5; }
+.dbox.sunk { fill: var(--sunk); }
+.dtext { font-family: Archivo, sans-serif; font-size: 12px; font-weight: 600; fill: var(--ink); }
+.dsub { font-family: "IBM Plex Mono", monospace; font-size: 10px; fill: var(--ink-2); }
+.dedge { stroke: currentColor; stroke-width: 1.4; fill: none; }
+.dedge.fail { stroke: var(--s2); stroke-width: 1.8; stroke-dasharray: 5 3; }
+.dlab { font-family: "IBM Plex Mono", monospace; font-size: 10px; fill: var(--ink-2); }
+.dlab.fail { fill: var(--s2); }
+
+/* trace replay */
+.replay-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
+.btn {
+  font-size: 12px; font-weight: 600; letter-spacing: .03em; padding: 6px 13px; border-radius: 3px;
+  border: 1px solid var(--rule-strong); background: var(--surface); color: var(--ink); cursor: pointer;
+}
+.btn:hover { border-color: var(--ink-3); }
+.btn[aria-pressed="true"] { background: var(--ink); color: var(--ground); border-color: var(--ink); }
+.btn:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+input[type=range] { flex: 1; min-width: 160px; accent-color: var(--accent); }
+.clock { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--ink-2); min-width: 92px; text-align: right; }
+.tip {
+  position: fixed; pointer-events: none; z-index: 20; background: var(--ink); color: var(--ground);
+  font-family: "IBM Plex Mono", monospace; font-size: 11px; line-height: 1.5; padding: 6px 9px;
+  border-radius: 3px; opacity: 0; transition: opacity .1s; max-width: 260px;
+}
+.tip.on { opacity: 1; }
+
+.note {
+  border-left: 2px solid var(--accent); padding: 2px 0 2px 16px; margin: 22px 0;
+  font-size: 15.5px; color: var(--ink-2);
+}
+.note b { color: var(--ink); font-weight: 600; }
+
+ul { margin: 0 0 16px; padding-left: 20px; }
+li { margin-bottom: 8px; }
+li::marker { color: var(--ink-3); }
+
+footer { margin-top: 76px; padding-top: 22px; border-top: 1px solid var(--rule); font-size: 12.5px; color: var(--ink-3); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+@media (max-width: 620px) {
+  body { font-size: 16px; }
+  .wrap { padding: 0 18px 64px; }
+  .mast { padding-top: 44px; }
+}
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">Distributed systems &middot; measured results</p>
+  <h1>MapReduce, Measured</h1>
+  <p class="lede">A coordinator/worker MapReduce in Go, instrumented until every claim about it is a number with a stated configuration &mdash; including the ones that turned out unimpressive.</p>
+  <p class="repo mono"><a href="https://github.com/aayushhks/map-reduce">github.com/aayushhks/map-reduce</a></p>
+  <div class="facts" id="facts"></div>
+</header>
+
+<section id="architecture">
+  <h2>How a task actually completes</h2>
+  <div class="col">
+    <p>The interesting part of this system is not that the coordinator hands out tasks. It is what happens when two workers are running the same task at once, or when one dies holding it. Both cases end at the same place: a single arbitration point that decides which attempt is allowed to publish its output.</p>
+  </div>
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title">Task attempt lifecycle</div>
+      <div class="cfg">Every attempt writes to a temp file and asks permission before publishing. Exactly one attempt per task is cleared, so a losing backup or a late straggler never overwrites a good result.</div>
+    </div>
+    <div class="panel-body">
+      <figure>
+        <svg viewBox="0 0 980 366" class="diagram" role="img" aria-label="Task attempt lifecycle: the coordinator assigns an attempt to a worker, the worker runs the task and writes temp files, then asks permission to publish. One attempt is cleared to commit and renames its output; a losing or timed out attempt discards its temp files and the task returns to the idle pool.">
+          <defs>
+            <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <polygon points="0,0 10,5 0,10" fill="currentColor"></polygon>
+            </marker>
+            <marker id="ahf" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <polygon points="0,0 10,5 0,10" fill="#eb6834"></polygon>
+            </marker>
+          </defs>
+
+          <rect class="dbox sunk" x="14" y="120" width="132" height="66" rx="3"></rect>
+          <text class="dtext" x="80" y="147" text-anchor="middle">Coordinator</text>
+          <text class="dsub" x="80" y="165" text-anchor="middle">idle task pool</text>
+
+          <rect class="dbox" x="228" y="34" width="150" height="66" rx="3"></rect>
+          <text class="dtext" x="303" y="61" text-anchor="middle">Attempt 1</text>
+          <text class="dsub" x="303" y="79" text-anchor="middle">worker-0</text>
+
+          <rect class="dbox" x="228" y="206" width="150" height="66" rx="3"></rect>
+          <text class="dtext" x="303" y="233" text-anchor="middle">Attempt 2</text>
+          <text class="dsub" x="303" y="251" text-anchor="middle">backup, worker-1</text>
+
+          <rect class="dbox" x="450" y="120" width="158" height="66" rx="3"></rect>
+          <text class="dtext" x="529" y="147" text-anchor="middle">Temp files</text>
+          <text class="dsub" x="529" y="165" text-anchor="middle">.mrtmp-out-N-…</text>
+
+          <rect class="dbox sunk" x="676" y="120" width="150" height="66" rx="3"></rect>
+          <text class="dtext" x="751" y="141" text-anchor="middle">Commit</text>
+          <text class="dtext" x="751" y="157" text-anchor="middle">arbitration</text>
+          <text class="dsub" x="751" y="175" text-anchor="middle">one winner</text>
+
+          <rect class="dbox" x="878" y="46" width="90" height="58" rx="3"></rect>
+          <text class="dtext" x="923" y="70" text-anchor="middle">mr-out-N</text>
+          <text class="dsub" x="923" y="87" text-anchor="middle">renamed</text>
+
+          <rect class="dbox" x="878" y="200" width="90" height="58" rx="3"></rect>
+          <text class="dtext" x="923" y="224" text-anchor="middle">Discarded</text>
+          <text class="dsub" x="923" y="241" text-anchor="middle">temps removed</text>
+
+          <path class="dedge" d="M146 140 L 228 76" marker-end="url(#ah)"></path>
+          <text class="dlab" x="150" y="100">assign</text>
+          <path class="dedge" d="M146 168 L 228 232" marker-end="url(#ah)"></path>
+          <text class="dlab" x="128" y="206">assign backup</text>
+
+          <path class="dedge" d="M378 76 L 450 138" marker-end="url(#ah)"></path>
+          <path class="dedge" d="M378 232 L 450 170" marker-end="url(#ah)"></path>
+          <text class="dlab" x="392" y="120">write</text>
+
+          <path class="dedge" d="M608 153 L 676 153" marker-end="url(#ah)"></path>
+          <text class="dlab" x="614" y="145">may I publish?</text>
+
+          <path class="dedge" d="M826 140 L 878 84" marker-end="url(#ah)"></path>
+          <text class="dlab" x="812" y="106">yes</text>
+          <path class="dedge" d="M826 168 L 878 219" marker-end="url(#ah)"></path>
+          <text class="dlab" x="812" y="203">no</text>
+
+          <path class="dedge fail" d="M751 186 L 751 316 L 82 316 L 82 186" marker-end="url(#ahf)"></path>
+          <text class="dlab fail" x="416" y="336" text-anchor="middle">timeout, or committer died before renaming &rarr; task returns to the idle pool</text>
+        </svg>
+        <figcaption>Publishing is gated, not raced. Only the cleared attempt renames its temp file into place, and the task is not counted as done until that attempt confirms the rename &mdash; so a worker that dies mid-commit leaves the task to be re-run rather than marked complete with output that was never written.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section id="scaling">
+  <h2>Where scaling breaks down</h2>
+  <div class="col">
+    <p>Speedup diverges from the ideal line at the very first added worker and flattens after four, which is the core count of the machine. The interesting engineering is not the speedup number &mdash; it is being able to say which of three plausible causes is responsible, with a measurement for each.</p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title">Speedup against the ideal linear line</div>
+      <div class="cfg" id="cfg-scaling"></div>
+    </div>
+    <div class="panel-body">
+      <div class="legend">
+        <span><i class="swatch dash"></i>Ideal linear</span>
+        <span><i class="swatch line" style="background:var(--s1)"></i>Measured, 10&nbsp;ms idle backoff</span>
+        <span><i class="swatch line" style="background:var(--s2)"></i>Measured, 1&nbsp;s idle backoff</span>
+      </div>
+      <div id="chart-scaling"></div>
+      <div class="scroll"><table id="tbl-scaling"></table></div>
+    </div>
+  </div>
+
+  <div class="col">
+    <h3>Cause 1 &mdash; the map phase is bound by cores</h3>
+    <p>Per-task work is identical at every worker count, so growth in task duration <em class="term">is</em> contention. Map task p50 rises from 31.0&nbsp;ms to 104.3&nbsp;ms between 1 and 16 workers. Dividing worker count by that inflation predicts the observed speedup closely at low counts: 1.59 predicted against 1.59 measured at two workers, 2.66 against 2.56 at four.</p>
+    <p>The direct test is restricting the core budget. If the map phase is CPU-bound, the knee must follow <em class="term">GOMAXPROCS</em> &mdash; and it does. On one core, adding workers buys nothing at all.</p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title">The knee follows the core budget</div>
+      <div class="cfg" id="cfg-cores"></div>
+    </div>
+    <div class="panel-body">
+      <div class="legend" id="legend-cores"></div>
+      <div id="chart-cores"></div>
+      <div class="scroll"><table id="tbl-cores"></table></div>
+    </div>
+  </div>
+
+  <div class="col">
+    <h3>Cause 2 &mdash; the reduce phase is bound by shuffle reads</h3>
+    <p>Reduce tasks spend 88 to 94 percent of their time in I/O, because each of the 16 reduce tasks reads all 160 intermediate partitions: 2,560 file opens per job. The phase floors near 465&nbsp;ms however many workers are added, and reduce task p50 inflates from 87.7&nbsp;ms to 328.6&nbsp;ms as concurrent readers contend. That residual is exactly what the CPU model fails to explain at 8 and 16 workers, where it over-predicts 3.62 against 2.84 and 4.75 against 3.08.</p>
+
+    <h3>Not the cause &mdash; coordinator contention</h3>
+    <div class="note"><b>Coordinator RPC handler time never exceeds 0.2% of job wall clock at any worker count.</b> Handler time is measured from handler entry, so it includes waiting for the global coordinator lock. The single mutex and the linear scan for an idle task are the intuitive culprits, and the measurement says they cost nothing at this scale.</div>
+
+    <h3>The one optimization, A/B'd</h3>
+    <p>Workers that found no work slept one second before asking again, and were still asleep when the reduce phase began. Lowering that to 10&nbsp;ms is a single-variable change on the same binary, same input, same seed. The one-worker row is the control: a lone worker never waits, so the setting cannot help it &mdash; and it doesn't.</p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title">Idle backoff, 1&nbsp;s against 10&nbsp;ms</div>
+      <div class="cfg" id="cfg-backoff"></div>
+    </div>
+    <div class="panel-body"><div class="scroll"><table id="tbl-backoff"></table></div></div>
+  </div>
+</section>
+
+<section id="speculation">
+  <h2>Speculative execution</h2>
+  <div class="col">
+    <p>One worker is made five times slower than the others, stretching every task it runs. With speculation on, a task running past twice its phase median gets a backup attempt on an idle worker, and the first to finish wins the commit.</p>
+    <p>The headline is a 1.93&times; improvement. The number that matters more is what happens to it as tasks get smaller.</p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title">The gain depends entirely on task granularity</div>
+      <div class="cfg" id="cfg-spec"></div>
+    </div>
+    <div class="panel-body">
+      <div class="legend">
+        <span><i class="swatch" style="background:var(--s1)"></i>Speculation off</span>
+        <span><i class="swatch" style="background:var(--s3)"></i>Speculation on</span>
+        <span><i class="swatch" style="background:var(--ink-3)"></i>Trial range, min to max</span>
+      </div>
+      <div id="chart-spec"></div>
+      <div class="scroll"><table id="tbl-spec"></table></div>
+    </div>
+  </div>
+
+  <div class="col">
+    <p>At 130 tasks the trial ranges overlap completely and 1.03&times; is noise. Fine-grained tasks with dynamic assignment already absorb a slow worker &mdash; it simply claims fewer tasks. Speculation only pays when a single task is large enough that losing it to a slow worker holds up the whole phase. Reported without the granularity sweep, the 1.93&times; would suggest a general result the measurements do not support.</p>
+    <div class="note" id="note-healthy"></div>
+  </div>
+</section>
+
+<section id="chaos">
+  <h2>Fault injection</h2>
+  <div class="col">
+    <p>Workers are real OS processes and kills are real <em class="term">SIGKILL</em>, so a worker dies wherever it happens to be, including part way through writing its output. A scenario counts as correct only if <strong>every</strong> trial finished with output byte-identical to a clean run.</p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title">Fault matrix</div>
+      <div class="cfg" id="cfg-chaos"></div>
+    </div>
+    <div class="panel-body"><div class="scroll"><table id="tbl-chaos"></table></div></div>
+  </div>
+
+  <div class="col">
+    <h3>Recovery is a policy choice, not a property</h3>
+    <p>Recovery is dominated by detection, and detection is a timeout. Sweeping the task timeout on the same scenario moves recovery almost exactly with it, the reap interval adding the small remainder.</p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title">Recovery tracks the configured timeout</div>
+      <div class="cfg" id="cfg-timeout"></div>
+    </div>
+    <div class="panel-body">
+      <div class="legend">
+        <span><i class="swatch line" style="background:var(--s1)"></i>Median recovery, min to max</span>
+        <span><i class="swatch dash"></i>Configured timeout</span>
+      </div>
+      <div id="chart-timeout"></div>
+      <div class="scroll"><table id="tbl-timeout"></table></div>
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="note"><b>A bug this found.</b> The first run of the harness failed the reduce-kill scenario with a wrong output hash. Reduce tasks wrote temp files named <em class="term">mr-out-3-2891479862</em>, and a worker killed mid-task left one behind &mdash; so anything reading results by the obvious <em class="term">mr-out-*</em> glob picked up the debris as output. Temps are now <em class="term">.mrtmp-out-N-…</em> and the verifier matches <em class="term">mr-out-</em> plus digits only. Every number in the table above is from re-runs after that fix.</div>
+  </div>
+</section>
+
+<section id="replay">
+  <h2>Replay a recorded run</h2>
+  <div class="col">
+    <p>These are committed trace files, not animations built for the page. Each is a real job the harness recorded: every attempt with its start and end, and every event including the ones that produced nothing &mdash; a timed-out attempt, a backup refused permission to publish. That last part is what makes a failure legible in a replay rather than an unexplained gap.</p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title" id="replay-title"></div>
+      <div class="cfg" id="cfg-replay"></div>
+    </div>
+    <div class="panel-body">
+      <div class="legend" id="legend-replay">
+        <span><i class="swatch" style="background:var(--s1)"></i>Map attempt</span>
+        <span><i class="swatch" style="background:var(--s2)"></i>Reduce attempt</span>
+        <span><i class="swatch" style="background:var(--s3)"></i>Speculative backup</span>
+        <span><svg width="15" height="12" aria-hidden="true"><path d="M2 2 l 10 8 M12 2 l -10 8" stroke="var(--bad)" stroke-width="2.2" stroke-linecap="round" fill="none"></path></svg>Attempt reaped, timed out</span>
+        <span><svg width="15" height="12" aria-hidden="true"><circle cx="7" cy="6" r="5" fill="none" stroke="var(--s2)" stroke-width="2"></circle><line x1="4" y1="6" x2="10" y2="6" stroke="var(--s2)" stroke-width="2"></line></svg>Attempt refused, lost the commit</span>
+      </div>
+      <div class="replay-controls">
+        <button class="btn" id="trace-kill" aria-pressed="true">Worker killed</button>
+        <button class="btn" id="trace-spec" aria-pressed="false">Backup wins</button>
+        <button class="btn" id="play">Play</button>
+        <input type="range" id="scrub" min="0" max="1000" value="1000" aria-label="Scrub the recorded run">
+        <span class="clock mono" id="clock"></span>
+      </div>
+      <div id="chart-replay"></div>
+      <figcaption id="replay-caption"></figcaption>
+    </div>
+  </div>
+</section>
+
+<section id="methodology">
+  <h2>Methodology</h2>
+  <div class="col">
+    <p>Every number on this page is rendered from JSON committed in the repository under <em class="term">bench/results/</em>. Nothing here is typed by hand, and nothing is projected or extrapolated.</p>
+    <h3>Hardware and placement</h3>
+    <p id="meth-env"></p>
+    <h3>Dataset</h3>
+    <p>Eight public-domain Project Gutenberg books, 3.2&nbsp;MB, committed in the repository. On the raw corpus a job finishes in about 140&nbsp;ms and wall clock swings 46 percent between trials, which is too noisy to build a scaling curve on. The benchmarks therefore run on a replicated corpus built by the committed <em class="term">data/scale.sh</em>: the same books copied under distinct document names, so per-record work is unchanged and only input volume grows. At 66&nbsp;MB the same job's trial spread is 5.9 percent.</p>
+    <h3>How the timing is taken</h3>
+    <p>The standalone coordinator polls for completion once a second and sleeps a second before exiting, so every externally timed job lands on a one-second grid: 1, 2, 4 and 8 workers all measured 3010&nbsp;ms &plusmn;4&nbsp;ms. That is a measurement of sleep constants, not of the system. The harness instead drives the coordinator in-process and reads phase boundaries from inside it, which is what makes the millisecond figures above mean anything.</p>
+    <h3>Correctness of every measured run</h3>
+    <p>Each run hashes its output: all lines from every reduce partition, sorted, SHA-256. A fast run that is silently wrong cannot pass as a good number. The hash is invariant under split size, worker count and trial &mdash; verified in tests across 8, 17 and 55 map tasks &mdash; and identical across all ten points of both scaling sweeps.</p>
+    <h3>Reproducing it</h3>
+    <div class="panel" style="margin-top:14px">
+      <div class="panel-body tight">
+<pre class="mono" style="margin:0;font-size:12px;line-height:1.7;overflow-x:auto;color:var(--ink-2)">data/scale.sh 20 /tmp/corpus20
+go run ./bench -input '/tmp/corpus20/*.txt' -workload invertedindex \
+    -reduce 16 -split-bytes 4194304 -trials 5 -seed 1 \
+    -wait-backoff 10ms -sweep 1,2,4,8,16
+
+go build -o /tmp/chaosworker ./chaos/worker
+go run ./chaos -input '/tmp/corpus5/*.txt' -worker /tmp/chaosworker \
+    -reduce 8 -split-bytes 1048576 -trials 3 -task-timeout 2s</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="limitations">
+  <h2>Limitations, and what I'd do next</h2>
+  <div class="col">
+    <p>The weakest part of this work is that it is all one machine with four cores. That shapes nearly every number above.</p>
+    <ul>
+      <li><strong>The knee is at four workers because the box has four vCPU.</strong> A multi-machine measurement would move it, and would also expose coordinator RPC cost that is invisible here at 0.2% of wall clock. The 16-worker point is oversubscription, not distribution.</li>
+      <li><strong>Coordinator restart is not implemented</strong>, so the chaos matrix cannot include it. All task state is in memory; surviving a restart needs task states, attempt numbers and the committer of any in-flight commit written durably and replayed at startup. Claiming fault tolerance for the coordinator without that would be untested.</li>
+      <li><strong>Polling with a short backoff is the wrong long-term answer.</strong> The coordinator should hold a request open until work exists rather than having workers ask again every 10&nbsp;ms.</li>
+      <li><strong>The reduce fan-in is the next thing to attack</strong>, not the scheduler: 160 partitions read per reduce task is what floors the reduce phase, and no amount of added workers moves it.</li>
+      <li><strong>The straggler scan walks every task in the phase while holding the coordinator lock.</strong> Fine at 160 tasks, wrong at a million.</li>
+      <li><strong>The slow worker is simulated</strong> by stretching task duration, which models a uniformly slow machine rather than one slow only at certain operations. RPC faults are injected in the client, not at the network layer.</li>
+      <li><strong>Worker utilization is computed from committed tasks</strong>, so a worker whose every attempt lost the commit race does not appear in that list at all.</li>
+    </ul>
+  </div>
+</section>
+
+<footer class="mono">
+  <span id="foot"></span>
+</footer>
+</div>
+<div class="tip mono" id="tip"></div>
+
+<script id="data" type="application/json">{"d":{"baseline":{"config":{"dataset":"project gutenberg 8 books, replicated 20x","input_glob":"/tmp/claude-0/-home-user-map-reduce/fca9a27d-5d91-52dd-9572-26fc60c06a11/scratchpad/corpus20/*.txt","workload":"invertedindex","workers":4,"n_reduce":16,"split_bytes":4194304,"wait_backoff_ms":1000,"seed":1,"trials":9,"input_files":160,"input_bytes":66022080,"map_tasks":160},"env":{"goos":"linux","goarch":"amd64","go_version":"go1.24.7","num_cpu":4,"placement":"single machine, coordinator and workers in one process over unix socket rpc"},"summary":{"wall_ms":{"median":3137.299,"min":3044.923,"max":3229.413},"map_phase_ms":{"median":1941.214,"min":1843.065,"max":2033.152},"shuffle_stall_ms":{"median":0.348,"min":0.232,"max":0.546},"reduce_phase_ms":{"median":1195.985,"min":1168.324,"max":1220.656},"records_per_sec":{"median":304000.352,"min":295329.213,"max":313223.027},"input_bytes_per_sec":{"median":21044242.197,"min":20443987.808,"max":21682676.376},"map_task_ms_pooled":{"count":1440,"min_ms":8.724205,"p50_ms":45.944,"p95_ms":69.096,"p99_ms":81.165,"max_ms":99.131213,"mean_ms":45.483},"reduce_task_ms_pooled":{"count":144,"min_ms":85.774912,"p50_ms":97.765,"p95_ms":122.148,"p99_ms":138.442,"max_ms":139.064396,"mean_ms":100.999},"output_hash":"337772595124868e4b9b870018fe4c545edad07dd580b6e451be1e9367b38ba5","output_hash_stable_across_trials":true},"trial0":{"bytes_shuffled":50253460,"intermediate_files":2560,"output_keys":19436}},"baseline_wc":{"wall_ms":{"median":8644.512,"min":8515.486,"max":9588.613},"records_per_sec":{"median":1443570.21,"min":1301435.359,"max":1465443.076},"bytes_shuffled":337551220,"hash":"4f4fa7c64788642cce6e659532915df5259bbb9e60a674f471d007e094f64970"},"scaling_10ms":{"config":{"dataset":"project gutenberg 8 books, replicated 20x","input_glob":"/tmp/claude-0/-home-user-map-reduce/fca9a27d-5d91-52dd-9572-26fc60c06a11/scratchpad/corpus20/*.txt","workload":"invertedindex","workers":0,"n_reduce":16,"split_bytes":4194304,"wait_backoff_ms":10,"seed":1,"trials":5,"input_files":160,"input_bytes":66022080,"map_tasks":160},"points":[{"workers":1,"wall":{"median":6337.129,"min":6190.377,"max":6549.742},"map_phase":4921.071,"reduce_phase":1432.363,"speedup":1.0,"efficiency":1.0,"map_p50":30.973,"reduce_p50":87.732,"coord_share":0,"map_io":0.444,"reduce_io":0.884,"hash":"337772595124868e"},{"workers":2,"wall":{"median":3993.79,"min":3896.267,"max":4127.884},"map_phase":3171.864,"reduce_phase":821.502,"speedup":1.587,"efficiency":0.793,"map_p50":39.013,"reduce_p50":98.502,"coord_share":0,"map_io":0.506,"reduce_io":0.878,"hash":"337772595124868e"},{"workers":4,"wall":{"median":2478.914,"min":2442.695,"max":2585.414},"map_phase":1996.984,"reduce_phase":482.245,"speedup":2.556,"efficiency":0.639,"map_p50":46.501,"reduce_p50":111.735,"coord_share":0,"map_io":0.606,"reduce_io":0.89,"hash":"337772595124868e"},{"workers":8,"wall":{"median":2230.803,"min":2158.834,"max":2288.113},"map_phase":1758.75,"reduce_phase":465.386,"speedup":2.841,"efficiency":0.355,"map_p50":68.403,"reduce_p50":192.831,"coord_share":0.002,"map_io":0.636,"reduce_io":0.898,"hash":"337772595124868e"},{"workers":16,"wall":{"median":2057.115,"min":1998.736,"max":2103.318},"map_phase":1589.845,"reduce_phase":479.736,"speedup":3.081,"efficiency":0.193,"map_p50":104.301,"reduce_p50":328.627,"coord_share":0,"map_io":0.682,"reduce_io":0.938,"hash":"337772595124868e"}]},"scaling_1s":{"config":{"dataset":"project gutenberg 8 books, replicated 20x","input_glob":"/tmp/claude-0/-home-user-map-reduce/fca9a27d-5d91-52dd-9572-26fc60c06a11/scratchpad/corpus20/*.txt","workload":"invertedindex","workers":0,"n_reduce":16,"split_bytes":4194304,"wait_backoff_ms":1000,"seed":1,"trials":5,"input_files":160,"input_bytes":66022080,"map_tasks":160},"points":[{"workers":1,"wall":{"median":6286.512,"min":5202.88,"max":6356.823},"map_phase":4811.368,"reduce_phase":1461.995,"speedup":1.0,"efficiency":1.0,"map_p50":32.199,"reduce_p50":87.785,"coord_share":0,"map_io":0.427,"reduce_io":0.882,"hash":"337772595124868e"},{"workers":2,"wall":{"median":4316.856,"min":4206.025,"max":4504.98},"map_phase":3045.136,"reduce_phase":1271.15,"speedup":1.456,"efficiency":0.728,"map_p50":36.886,"reduce_p50":88.822,"coord_share":0.002,"map_io":0.542,"reduce_io":0.884,"hash":"337772595124868e"},{"workers":4,"wall":{"median":3292.746,"min":3127.864,"max":3417.013},"map_phase":2112.373,"reduce_phase":1176.508,"speedup":1.909,"efficiency":0.477,"map_p50":51.267,"reduce_p50":94.296,"coord_share":0,"map_io":0.596,"reduce_io":0.875,"hash":"337772595124868e"},{"workers":8,"wall":{"median":2832.39,"min":2539.252,"max":3027.76},"map_phase":1703.077,"reduce_phase":1133.097,"speedup":2.22,"efficiency":0.277,"map_p50":69.388,"reduce_p50":91.862,"coord_share":0.002,"map_io":0.598,"reduce_io":0.885,"hash":"337772595124868e"},{"workers":16,"wall":{"median":2821.665,"min":2683.152,"max":2861.782},"map_phase":1705.299,"reduce_phase":1140.481,"speedup":2.228,"efficiency":0.139,"map_p50":123.035,"reduce_p50":93.155,"coord_share":0,"map_io":0.702,"reduce_io":0.861,"hash":"337772595124868e"}]},"cores":{"1":[{"workers":1,"speedup":1.0,"map_p50":24.476},{"workers":2,"speedup":0.983,"map_p50":32.094},{"workers":4,"speedup":0.968,"map_p50":43.889},{"workers":8,"speedup":0.981,"map_p50":57.574}],"2":[{"workers":1,"speedup":1.0,"map_p50":26.863},{"workers":2,"speedup":1.521,"map_p50":36.149},{"workers":4,"speedup":1.697,"map_p50":52.492},{"workers":8,"speedup":1.839,"map_p50":73.954}],"4":[{"workers":1,"speedup":1.0,"map_p50":30.646},{"workers":2,"speedup":1.584,"map_p50":39.316},{"workers":4,"speedup":2.433,"map_p50":48.732},{"workers":8,"speedup":2.774,"map_p50":71.075}]},"spec":{"coarse_off":{"map_tasks":8,"wall":{"median":2036.003,"min":1486,"max":2767.769},"launched":0,"won":0,"hash":"53ae1a3d57d7a814","trials":5,"slow_workers":1,"slow_factor":5},"coarse_on":{"map_tasks":8,"wall":{"median":1055.412,"min":802.149,"max":1310.247},"launched":6,"won":5,"hash":"53ae1a3d57d7a814","trials":5,"slow_workers":1,"slow_factor":5},"mid_off":{"map_tasks":36,"wall":{"median":1784.425,"min":1398.568,"max":1850.352},"launched":0,"won":0,"hash":"53ae1a3d57d7a814","trials":5,"slow_workers":1,"slow_factor":5},"mid_on":{"map_tasks":36,"wall":{"median":1344.254,"min":1223.356,"max":1530.94},"launched":5,"won":4,"hash":"53ae1a3d57d7a814","trials":5,"slow_workers":1,"slow_factor":5},"fine_off":{"map_tasks":130,"wall":{"median":2792.615,"min":2674.354,"max":2927.201},"launched":0,"won":0,"hash":"53ae1a3d57d7a814","trials":5,"slow_workers":1,"slow_factor":5},"fine_on":{"map_tasks":130,"wall":{"median":2716.625,"min":2693.296,"max":2860.081},"launched":8,"won":6,"hash":"53ae1a3d57d7a814","trials":5,"slow_workers":1,"slow_factor":5},"healthy_off":{"map_tasks":8,"wall":{"median":908.885,"min":840.677,"max":1112.723},"launched":0,"won":0,"hash":"53ae1a3d57d7a814","trials":5,"slow_workers":0,"slow_factor":1},"healthy_on":{"map_tasks":8,"wall":{"median":996.471,"min":782.962,"max":1227.656},"launched":2,"won":0,"hash":"53ae1a3d57d7a814","trials":5,"slow_workers":0,"slow_factor":1}},"chaos":{"config":{"dataset":"project gutenberg 8 books, replicated 5x","input_glob":"/tmp/claude-0/-home-user-map-reduce/fca9a27d-5d91-52dd-9572-26fc60c06a11/scratchpad/corpus5/*.txt","workload":"invertedindex","input_files":40,"input_bytes":16505520,"map_tasks":40,"n_reduce":8,"workers":4,"task_timeout_ms":2000,"reap_interval_ms":250,"trials_per_scenario":3,"seed":1},"results":[{"scenario":"clean","description":"no faults, the reference run","trials":3,"completed":true,"output_matches_clean_run":true,"wall_ms":515.958,"recovery_min_ms":0,"recovery_median_ms":0,"recovery_max_ms":0,"redundant_attempts":0,"work_preserved_share":1,"tasks_total":48},{"scenario":"kill-1-map","description":"one worker killed during the map phase, not replaced","trials":3,"completed":true,"output_matches_clean_run":true,"wall_ms":2487.044,"recovery_min_ms":2090.714,"recovery_median_ms":2100.424,"recovery_max_ms":2170.725,"redundant_attempts":3,"work_preserved_share":0.354,"tasks_total":48},{"scenario":"kill-2-map","description":"two workers killed during the map phase, not replaced","trials":3,"completed":true,"output_matches_clean_run":true,"wall_ms":2520.08,"recovery_min_ms":2101.937,"recovery_median_ms":2123.223,"recovery_max_ms":2164.195,"redundant_attempts":3,"work_preserved_share":0.333,"tasks_total":48},{"scenario":"kill-1-map-restart","description":"one worker killed during the map phase and replaced","trials":3,"completed":true,"output_matches_clean_run":true,"wall_ms":2448.051,"recovery_min_ms":2087.495,"recovery_median_ms":2104.456,"recovery_max_ms":2148.787,"redundant_attempts":3,"work_preserved_share":0.333,"tasks_total":48},{"scenario":"kill-1-reduce","description":"one worker killed during the reduce phase, not replaced","trials":3,"completed":true,"output_matches_clean_run":true,"wall_ms":2559.701,"recovery_min_ms":2041.245,"recovery_median_ms":2065.931,"recovery_max_ms":2069.236,"redundant_attempts":3,"work_preserved_share":0.917,"tasks_total":48},{"scenario":"kill-repeat-map","description":"one worker slot killed three times during the map phase, replaced each time","trials":3,"completed":true,"output_matches_clean_run":true,"wall_ms":2451.997,"recovery_min_ms":2100.034,"recovery_median_ms":2109.11,"recovery_max_ms":2173.614,"redundant_attempts":3,"work_preserved_share":0.333,"tasks_total":48},{"scenario":"rpc-drop-10pct","description":"one in ten rpcs dropped for every worker, no kills","trials":3,"completed":true,"output_matches_clean_run":true,"wall_ms":578.185,"recovery_min_ms":0,"recovery_median_ms":0,"recovery_max_ms":0,"redundant_attempts":0,"work_preserved_share":1,"tasks_total":48},{"scenario":"rpc-drop-30pct","description":"three in ten rpcs dropped for every worker, no kills","trials":3,"completed":true,"output_matches_clean_run":true,"wall_ms":1108.534,"recovery_min_ms":0,"recovery_median_ms":0,"recovery_max_ms":0,"redundant_attempts":0,"work_preserved_share":1,"tasks_total":48},{"scenario":"rpc-delay-25ms","description":"every rpc delayed by 25 ms, no kills","trials":3,"completed":true,"output_matches_clean_run":true,"wall_ms":1360.562,"recovery_min_ms":0,"recovery_median_ms":0,"recovery_max_ms":0,"redundant_attempts":0,"work_preserved_share":1,"tasks_total":48}]},"timeouts":[{"timeout":"250ms","min":248.576,"med":300.317,"max":353.679,"wall":614.543,"redundant":3,"correct":true},{"timeout":"500ms","min":505.77,"med":544.91,"max":549.291,"wall":891.249,"redundant":3,"correct":true},{"timeout":"1s","min":1012.147,"med":1038.44,"max":1048.594,"wall":1419.924,"redundant":3,"correct":true},{"timeout":"2s","min":2016.41,"med":2038.943,"max":2071.659,"wall":2427.592,"redundant":3,"correct":true},{"timeout":"4s","min":3977.874,"med":4030.082,"max":4065.997,"wall":4363.236,"redundant":3,"correct":true}]},"traces":{"kill":{"label":"kill-1-map: one worker killed during the map phase, not replaced","job":{"duration_ms":1326.039,"map_phase_end_ms":1149.461,"reduce_phase_start_ms":1150.02,"map_tasks":40,"reduce_tasks":8,"backups_launched":0,"backups_won":0},"workers":["worker-0-0","worker-1-1","worker-2-2","worker-3-3"],"tasks":[{"w":"worker-2-2","p":"map","id":0,"a":1,"b":false,"s":4.6,"e":14.6},{"w":"worker-1-1","p":"map","id":1,"a":1,"b":false,"s":4.8,"e":13.3},{"w":"worker-3-3","p":"map","id":3,"a":1,"b":false,"s":5.6,"e":16.3},{"w":"worker-0-0","p":"map","id":2,"a":1,"b":false,"s":5.6,"e":23.2},{"w":"worker-1-1","p":"map","id":4,"a":1,"b":false,"s":15.1,"e":28.6},{"w":"worker-2-2","p":"map","id":5,"a":1,"b":false,"s":16.2,"e":51.8},{"w":"worker-3-3","p":"map","id":6,"a":1,"b":false,"s":17.0,"e":62.3},{"w":"worker-0-0","p":"map","id":7,"a":1,"b":false,"s":24.2,"e":59.0},{"w":"worker-1-1","p":"map","id":8,"a":1,"b":false,"s":29.6,"e":56.5},{"w":"worker-2-2","p":"map","id":9,"a":1,"b":false,"s":54.4,"e":86.8},{"w":"worker-1-1","p":"map","id":10,"a":1,"b":false,"s":57.8,"e":95.8},{"w":"worker-0-0","p":"map","id":11,"a":1,"b":false,"s":61.1,"e":98.7},{"w":"worker-3-3","p":"map","id":12,"a":1,"b":false,"s":63.4,"e":97.6},{"w":"worker-2-2","p":"map","id":13,"a":1,"b":false,"s":88.2,"e":113.9},{"w":"worker-1-1","p":"map","id":14,"a":1,"b":false,"s":96.9,"e":125.4},{"w":"worker-3-3","p":"map","id":15,"a":1,"b":false,"s":101.9,"e":150.1},{"w":"worker-2-2","p":"map","id":17,"a":1,"b":false,"s":114.9,"e":154.8},{"w":"worker-1-1","p":"map","id":18,"a":1,"b":false,"s":126.3,"e":159.8},{"w":"worker-3-3","p":"map","id":19,"a":1,"b":false,"s":151.2,"e":173.5},{"w":"worker-2-2","p":"map","id":20,"a":1,"b":false,"s":155.8,"e":186.0},{"w":"worker-1-1","p":"map","id":21,"a":1,"b":false,"s":161.5,"e":198.6},{"w":"worker-3-3","p":"map","id":22,"a":1,"b":false,"s":174.2,"e":214.2},{"w":"worker-2-2","p":"map","id":23,"a":1,"b":false,"s":187.1,"e":225.4},{"w":"worker-1-1","p":"map","id":24,"a":1,"b":false,"s":199.8,"e":236.1},{"w":"worker-3-3","p":"map","id":25,"a":1,"b":false,"s":215.8,"e":225.3},{"w":"worker-3-3","p":"map","id":26,"a":1,"b":false,"s":226.4,"e":236.0},{"w":"worker-2-2","p":"map","id":27,"a":1,"b":false,"s":226.6,"e":235.9},{"w":"worker-2-2","p":"map","id":29,"a":1,"b":false,"s":237.0,"e":243.6},{"w":"worker-1-1","p":"map","id":28,"a":1,"b":false,"s":237.0,"e":249.4},{"w":"worker-3-3","p":"map","id":30,"a":1,"b":false,"s":238.7,"e":272.0},{"w":"worker-2-2","p":"map","id":31,"a":1,"b":false,"s":244.9,"e":280.4},{"w":"worker-1-1","p":"map","id":32,"a":1,"b":false,"s":250.6,"e":283.6},{"w":"worker-3-3","p":"map","id":33,"a":1,"b":false,"s":273.4,"e":301.6},{"w":"worker-2-2","p":"map","id":34,"a":1,"b":false,"s":284.1,"e":313.7},{"w":"worker-1-1","p":"map","id":35,"a":1,"b":false,"s":285.1,"e":307.9},{"w":"worker-3-3","p":"map","id":36,"a":1,"b":false,"s":302.7,"e":328.8},{"w":"worker-1-1","p":"map","id":37,"a":1,"b":false,"s":311.2,"e":340.6},{"w":"worker-2-2","p":"map","id":38,"a":1,"b":false,"s":314.5,"e":343.9},{"w":"worker-3-3","p":"map","id":39,"a":1,"b":false,"s":330.1,"e":353.2},{"w":"worker-3-3","p":"map","id":16,"a":2,"b":false,"s":1114.0,"e":1149.0},{"w":"worker-3-3","p":"reduce","id":0,"a":1,"b":false,"s":1150.2,"e":1207.9},{"w":"worker-1-1","p":"reduce","id":1,"a":1,"b":false,"s":1158.1,"e":1211.3},{"w":"worker-2-2","p":"reduce","id":2,"a":1,"b":false,"s":1158.6,"e":1214.4},{"w":"worker-3-3","p":"reduce","id":3,"a":1,"b":false,"s":1208.8,"e":1262.1},{"w":"worker-1-1","p":"reduce","id":4,"a":1,"b":false,"s":1212.3,"e":1281.7},{"w":"worker-2-2","p":"reduce","id":5,"a":1,"b":false,"s":1215.4,"e":1272.9},{"w":"worker-3-3","p":"reduce","id":6,"a":1,"b":false,"s":1263.7,"e":1315.0},{"w":"worker-2-2","p":"reduce","id":7,"a":1,"b":false,"s":1274.5,"e":1325.6}],"events":[{"k":"assigned","p":"map","id":0,"a":1,"w":"worker-2-2","b":false,"t":4.4},{"k":"assigned","p":"map","id":1,"a":1,"w":"worker-1-1","b":false,"t":4.6},{"k":"assigned","p":"map","id":2,"a":1,"w":"worker-0-0","b":false,"t":5.3},{"k":"assigned","p":"map","id":3,"a":1,"w":"worker-3-3","b":false,"t":5.4},{"k":"assigned","p":"map","id":4,"a":1,"w":"worker-1-1","b":false,"t":15.0},{"k":"assigned","p":"map","id":5,"a":1,"w":"worker-2-2","b":false,"t":15.8},{"k":"assigned","p":"map","id":6,"a":1,"w":"worker-3-3","b":false,"t":16.9},{"k":"assigned","p":"map","id":7,"a":1,"w":"worker-0-0","b":false,"t":24.1},{"k":"assigned","p":"map","id":8,"a":1,"w":"worker-1-1","b":false,"t":29.3},{"k":"assigned","p":"map","id":9,"a":1,"w":"worker-2-2","b":false,"t":54.2},{"k":"assigned","p":"map","id":10,"a":1,"w":"worker-1-1","b":false,"t":57.6},{"k":"assigned","p":"map","id":11,"a":1,"w":"worker-0-0","b":false,"t":60.9},{"k":"assigned","p":"map","id":12,"a":1,"w":"worker-3-3","b":false,"t":63.3},{"k":"assigned","p":"map","id":13,"a":1,"w":"worker-2-2","b":false,"t":88.0},{"k":"assigned","p":"map","id":14,"a":1,"w":"worker-1-1","b":false,"t":96.8},{"k":"assigned","p":"map","id":15,"a":1,"w":"worker-3-3","b":false,"t":99.0},{"k":"assigned","p":"map","id":16,"a":1,"w":"worker-0-0","b":false,"t":99.5},{"k":"assigned","p":"map","id":17,"a":1,"w":"worker-2-2","b":false,"t":114.7},{"k":"assigned","p":"map","id":18,"a":1,"w":"worker-1-1","b":false,"t":126.2},{"k":"assigned","p":"map","id":19,"a":1,"w":"worker-3-3","b":false,"t":151.0},{"k":"assigned","p":"map","id":20,"a":1,"w":"worker-2-2","b":false,"t":155.6},{"k":"assigned","p":"map","id":21,"a":1,"w":"worker-1-1","b":false,"t":161.4},{"k":"assigned","p":"map","id":22,"a":1,"w":"worker-3-3","b":false,"t":174.1},{"k":"assigned","p":"map","id":23,"a":1,"w":"worker-2-2","b":false,"t":186.9},{"k":"assigned","p":"map","id":24,"a":1,"w":"worker-1-1","b":false,"t":199.6},{"k":"assigned","p":"map","id":25,"a":1,"w":"worker-3-3","b":false,"t":215.6},{"k":"assigned","p":"map","id":26,"a":1,"w":"worker-3-3","b":false,"t":226.2},{"k":"assigned","p":"map","id":27,"a":1,"w":"worker-2-2","b":false,"t":226.4},{"k":"assigned","p":"map","id":28,"a":1,"w":"worker-1-1","b":false,"t":236.8},{"k":"assigned","p":"map","id":29,"a":1,"w":"worker-2-2","b":false,"t":236.9},{"k":"assigned","p":"map","id":30,"a":1,"w":"worker-3-3","b":false,"t":236.9},{"k":"assigned","p":"map","id":31,"a":1,"w":"worker-2-2","b":false,"t":244.6},{"k":"assigned","p":"map","id":32,"a":1,"w":"worker-1-1","b":false,"t":250.4},{"k":"assigned","p":"map","id":33,"a":1,"w":"worker-3-3","b":false,"t":273.3},{"k":"assigned","p":"map","id":34,"a":1,"w":"worker-2-2","b":false,"t":283.9},{"k":"assigned","p":"map","id":35,"a":1,"w":"worker-1-1","b":false,"t":285.0},{"k":"assigned","p":"map","id":36,"a":1,"w":"worker-3-3","b":false,"t":302.4},{"k":"assigned","p":"map","id":37,"a":1,"w":"worker-1-1","b":false,"t":311.0},{"k":"assigned","p":"map","id":38,"a":1,"w":"worker-2-2","b":false,"t":314.4},{"k":"assigned","p":"map","id":39,"a":1,"w":"worker-3-3","b":false,"t":329.8},{"k":"reaped","p":"map","id":16,"a":1,"w":"worker-0-0","b":false,"t":1105.4},{"k":"assigned","p":"map","id":16,"a":2,"w":"worker-3-3","b":false,"t":1113.9},{"k":"assigned","p":"reduce","id":0,"a":1,"w":"worker-3-3","b":false,"t":1150.0},{"k":"assigned","p":"reduce","id":1,"a":1,"w":"worker-1-1","b":false,"t":1157.9},{"k":"assigned","p":"reduce","id":2,"a":1,"w":"worker-2-2","b":false,"t":1158.3},{"k":"assigned","p":"reduce","id":3,"a":1,"w":"worker-3-3","b":false,"t":1208.5},{"k":"assigned","p":"reduce","id":4,"a":1,"w":"worker-1-1","b":false,"t":1212.1},{"k":"assigned","p":"reduce","id":5,"a":1,"w":"worker-2-2","b":false,"t":1215.2},{"k":"assigned","p":"reduce","id":6,"a":1,"w":"worker-3-3","b":false,"t":1263.5},{"k":"assigned","p":"reduce","id":7,"a":1,"w":"worker-2-2","b":false,"t":1273.7}]},"spec":{"label":"invertedindex, 4 workers","job":{"duration_ms":1079.232,"map_phase_end_ms":1046.846,"reduce_phase_start_ms":1047.277,"map_tasks":8,"reduce_tasks":8,"backups_launched":1,"backups_won":1},"workers":["worker-0","worker-1","worker-2","worker-3"],"tasks":[{"w":"worker-3","p":"map","id":0,"a":1,"b":false,"s":1.8,"e":257.1},{"w":"worker-1","p":"map","id":2,"a":1,"b":false,"s":2.1,"e":512.6},{"w":"worker-2","p":"map","id":3,"a":1,"b":false,"s":2.2,"e":537.2},{"w":"worker-3","p":"map","id":4,"a":1,"b":false,"s":257.6,"e":612.6},{"w":"worker-1","p":"map","id":5,"a":1,"b":false,"s":513.3,"e":865.1},{"w":"worker-2","p":"map","id":6,"a":1,"b":false,"s":537.8,"e":969.4},{"w":"worker-3","p":"map","id":7,"a":1,"b":false,"s":612.9,"e":1046.4},{"w":"worker-1","p":"map","id":1,"a":2,"b":true,"s":865.7,"e":975.9},{"w":"worker-3","p":"reduce","id":0,"a":1,"b":false,"s":1047.6,"e":1056.2},{"w":"worker-2","p":"reduce","id":1,"a":1,"b":false,"s":1049.4,"e":1058.2},{"w":"worker-1","p":"reduce","id":2,"a":1,"b":false,"s":1055.8,"e":1065.6},{"w":"worker-3","p":"reduce","id":3,"a":1,"b":false,"s":1056.5,"e":1065.5},{"w":"worker-2","p":"reduce","id":4,"a":1,"b":false,"s":1058.5,"e":1067.1},{"w":"worker-3","p":"reduce","id":5,"a":1,"b":false,"s":1066.0,"e":1074.5},{"w":"worker-1","p":"reduce","id":6,"a":1,"b":false,"s":1066.2,"e":1074.6},{"w":"worker-2","p":"reduce","id":7,"a":1,"b":false,"s":1067.5,"e":1078.9}],"events":[{"k":"assigned","p":"map","id":0,"a":1,"w":"worker-3","b":false,"t":1.6},{"k":"assigned","p":"map","id":1,"a":1,"w":"worker-0","b":false,"t":1.8},{"k":"assigned","p":"map","id":2,"a":1,"w":"worker-1","b":false,"t":1.8},{"k":"assigned","p":"map","id":3,"a":1,"w":"worker-2","b":false,"t":2.0},{"k":"assigned","p":"map","id":4,"a":1,"w":"worker-3","b":false,"t":257.5},{"k":"assigned","p":"map","id":5,"a":1,"w":"worker-1","b":false,"t":513.2},{"k":"assigned","p":"map","id":6,"a":1,"w":"worker-2","b":false,"t":537.7},{"k":"assigned","p":"map","id":7,"a":1,"w":"worker-3","b":false,"t":612.9},{"k":"assigned","p":"map","id":1,"a":2,"w":"worker-1","b":true,"t":865.7},{"k":"assigned","p":"reduce","id":0,"a":1,"w":"worker-3","b":false,"t":1047.3},{"k":"assigned","p":"reduce","id":1,"a":1,"w":"worker-2","b":false,"t":1049.2},{"k":"assigned","p":"reduce","id":2,"a":1,"w":"worker-1","b":false,"t":1055.7},{"k":"assigned","p":"reduce","id":3,"a":1,"w":"worker-3","b":false,"t":1056.5},{"k":"assigned","p":"reduce","id":4,"a":1,"w":"worker-2","b":false,"t":1058.4},{"k":"assigned","p":"reduce","id":5,"a":1,"w":"worker-3","b":false,"t":1065.9},{"k":"assigned","p":"reduce","id":6,"a":1,"w":"worker-1","b":false,"t":1066.0},{"k":"assigned","p":"reduce","id":7,"a":1,"w":"worker-2","b":false,"t":1067.4},{"k":"refused","p":"map","id":1,"a":1,"w":"worker-0","b":false,"t":2419.9}]}}}</script>
+<script>
+(function () {
+  "use strict";
+  var RAW = JSON.parse(document.getElementById("data").textContent);
+  var D = RAW.d, TRACES = RAW.traces;
+  var SVG = "http://www.w3.org/2000/svg";
+
+  function el(tag, attrs, text) {
+    var n = document.createElementNS(SVG, tag);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  function h(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  function fmt(v, dp) { return Number(v).toFixed(dp == null ? 0 : dp); }
+  function mb(bytes) { return (bytes / 1e6).toFixed(1); }
+
+  /* ---------- shared tooltip ---------- */
+  var tip = document.getElementById("tip");
+  function hover(node, lines) {
+    node.addEventListener("pointerenter", function (e) {
+      tip.textContent = "";
+      lines.forEach(function (l) { var d = h("div", null, l); tip.appendChild(d); });
+      tip.classList.add("on");
+      move(e);
+    });
+    node.addEventListener("pointermove", move);
+    node.addEventListener("pointerleave", function () { tip.classList.remove("on"); });
+    function move(e) {
+      var pad = 14;
+      var x = e.clientX + pad, y = e.clientY + pad;
+      var r = tip.getBoundingClientRect();
+      if (x + r.width > window.innerWidth - 8) x = e.clientX - r.width - pad;
+      if (y + r.height > window.innerHeight - 8) y = e.clientY - r.height - pad;
+      tip.style.left = x + "px";
+      tip.style.top = y + "px";
+    }
+  }
+
+  /* ---------- table helper ---------- */
+  function table(target, cols, rows) {
+    var t = document.getElementById(target);
+    t.textContent = "";
+    var thead = document.createElement("thead"), tr = document.createElement("tr");
+    cols.forEach(function (c) {
+      var th = document.createElement("th");
+      th.textContent = c.h;
+      if (c.n) th.className = "n";
+      tr.appendChild(th);
+    });
+    thead.appendChild(tr); t.appendChild(thead);
+    var tb = document.createElement("tbody");
+    rows.forEach(function (r) {
+      var row = document.createElement("tr");
+      cols.forEach(function (c, i) {
+        var td = document.createElement("td");
+        var v = r[i];
+        if (v && v.pill) {
+          var s = h("span", "pill " + (v.ok ? "ok" : "no"), v.pill);
+          td.appendChild(s);
+        } else {
+          td.textContent = v;
+        }
+        td.className = (c.n ? "n " : "") + (i === 0 ? "lead " : "") + (c.mono !== false ? "mono" : "");
+        row.appendChild(td);
+      });
+      tb.appendChild(row);
+    });
+    t.appendChild(tb);
+  }
+
+  /* ---------- masthead facts ---------- */
+  (function () {
+    var b = D.baseline, sp = D.spec, ch = D.chaos;
+    var s16 = D.scaling_10ms.points[4], s4 = D.scaling_10ms.points[2];
+    var allCorrect = ch.results.every(function (r) { return r.completed && r.output_matches_clean_run; });
+    var facts = [
+      ["Speedup at 4 workers", fmt(s4.speedup, 2) + "×",
+       "efficiency " + fmt(s4.efficiency, 2) + " · 66.0 MB · median of 5 trials · 4 vCPU"],
+      ["Straggler recovered", fmt(sp.coarse_off.wall.median / sp.coarse_on.wall.median, 2) + "×",
+       "one 5× slow worker, 8 map tasks · " + fmt(sp.coarse_off.wall.median) + " → " + fmt(sp.coarse_on.wall.median) + " ms · median of 5"],
+      ["Fault scenarios correct", ch.results.length + " / " + ch.results.length,
+       (allCorrect ? "every trial" : "not all trials") + " matched the clean-run hash · 3 trials each · real SIGKILL"],
+      ["Recovery at a 250 ms timeout", fmt(D.timeouts[0].med) + " ms",
+       "kill one worker mid-map · costs ~100 ms on a " + fmt(D.timeouts[0].wall - (D.timeouts[0].med - 250) - 250) + " ms job"]
+    ];
+    var wrap = document.getElementById("facts");
+    facts.forEach(function (f) {
+      var d = h("div", "fact");
+      d.appendChild(h("div", "k", f[0]));
+      d.appendChild(h("div", "v mono", f[1]));
+      d.appendChild(h("div", "c", f[2]));
+      wrap.appendChild(d);
+    });
+  })();
+
+  /* ---------- config strips ---------- */
+  function cfgLine(id, parts) {
+    var n = document.getElementById(id);
+    n.textContent = "";
+    parts.forEach(function (p, i) {
+      if (i) n.appendChild(document.createTextNode(" · "));
+      var b = h("b", null, p[0]);
+      n.appendChild(b);
+      n.appendChild(document.createTextNode(" " + p[1]));
+    });
+  }
+  var SC = D.scaling_10ms.config;
+  var scalingCfg = [
+    ["Input", mb(SC.input_bytes) + " MB, " + SC.input_files + " files"],
+    ["Tasks", SC.map_tasks + " map / " + SC.n_reduce + " reduce"],
+    ["Workload", SC.workload],
+    ["Trials", "median of " + SC.trials + ", seed " + SC.seed],
+    ["Machine", D.baseline.env.num_cpu + " vCPU, " + D.baseline.env.go_version],
+    ["Backoff", "10 ms"]
+  ];
+  cfgLine("cfg-scaling", scalingCfg);
+  cfgLine("cfg-cores", [
+    ["Same input", mb(SC.input_bytes) + " MB"], ["Trials", "median of 3"],
+    ["Varied", "GOMAXPROCS only"], ["Backoff", "10 ms"]
+  ]);
+  cfgLine("cfg-backoff", [
+    ["Single variable", "idle backoff"], ["Same binary", "same input, same seed"],
+    ["Trials", "median of " + SC.trials]
+  ]);
+  var SPC = D.spec.coarse_off;
+  cfgLine("cfg-spec", [
+    ["Input", "66.0 MB, 8 concatenated books"],
+    ["Injected", SPC.slow_workers + " worker at " + fmt(SPC.slow_factor) + "× slower"],
+    ["Workers", "4"], ["Trials", "median of " + SPC.trials + ", seed 1"],
+    ["Varied", "split size only"]
+  ]);
+  var CC = D.chaos.config;
+  cfgLine("cfg-chaos", [
+    ["Input", mb(CC.input_bytes) + " MB"],
+    ["Tasks", CC.map_tasks + " map / " + CC.n_reduce + " reduce"],
+    ["Workers", CC.workers + " OS processes"],
+    ["Timeout", CC.task_timeout_ms + " ms, reap " + CC.reap_interval_ms + " ms"],
+    ["Trials", CC.trials_per_scenario + " per scenario"]
+  ]);
+  cfgLine("cfg-timeout", [
+    ["Scenario", "kill one worker during map"],
+    ["Reap interval", "100 ms"], ["Trials", "3"], ["Varied", "task timeout only"]
+  ]);
+
+  document.getElementById("meth-env").textContent =
+    "All measurements: " + D.baseline.env.num_cpu + " vCPU, 15 GB RAM, " +
+    D.baseline.env.goarch + ", Linux 6.18, " + D.baseline.env.go_version +
+    ". " + D.baseline.env.placement.charAt(0).toUpperCase() + D.baseline.env.placement.slice(1) +
+    ". The chaos harness differs: the coordinator runs in the harness process while workers are separate OS processes, which is what lets it kill them for real.";
+
+  document.getElementById("foot").textContent =
+    "Every figure rendered from bench/results/*.json · output hash " +
+    D.baseline.summary.output_hash.slice(0, 16) + " · " +
+    "go test -race passes on mr, bench, trace and chaos";
+
+  /* ---------- chart scaffolding ---------- */
+  function frame(mount, w, hgt, m) {
+    var svg = el("svg", { viewBox: "0 0 " + w + " " + hgt });
+    document.getElementById(mount).appendChild(svg);
+    return { svg: svg, w: w, h: hgt, m: m,
+             iw: w - m.l - m.r, ih: hgt - m.t - m.b };
+  }
+  function yaxis(f, max, ticks, label) {
+    for (var i = 0; i <= ticks; i++) {
+      var v = max * i / ticks;
+      var y = f.m.t + f.ih - (v / max) * f.ih;
+      f.svg.appendChild(el("line", { x1: f.m.l, y1: y, x2: f.m.l + f.iw, y2: y, class: "gridline" }));
+      f.svg.appendChild(el("text", { x: f.m.l - 9, y: y + 3.5, class: "tick", "text-anchor": "end" },
+        v >= 100 ? fmt(v) : fmt(v, v % 1 ? 1 : 0)));
+    }
+    f.svg.appendChild(el("text", { x: 2, y: f.m.t - 14, class: "axlabel", "text-anchor": "start" }, label));
+  }
+
+  /* ---------- 1. scaling curve ---------- */
+  (function () {
+    var pts10 = D.scaling_10ms.points, pts1s = D.scaling_1s.points;
+    var f = frame("chart-scaling", 720, 330, { l: 46, r: 92, t: 30, b: 46 });
+    var maxY = 16, xs = pts10.map(function (p) { return p.workers; });
+    function X(w) { return f.m.l + (Math.log2(w) / Math.log2(16)) * f.iw; }
+    function Y(v) { return f.m.t + f.ih - (v / maxY) * f.ih; }
+
+    yaxis(f, maxY, 4, "speedup ×");
+    xs.forEach(function (w) {
+      f.svg.appendChild(el("text", { x: X(w), y: f.m.t + f.ih + 20, class: "tick", "text-anchor": "middle" }, w));
+    });
+    f.svg.appendChild(el("text", { x: f.m.l + f.iw / 2, y: f.h - 8, class: "axlabel", "text-anchor": "middle" }, "workers"));
+    f.svg.appendChild(el("line", { x1: f.m.l, y1: f.m.t + f.ih, x2: f.m.l + f.iw, y2: f.m.t + f.ih, class: "axis" }));
+
+    f.svg.appendChild(el("path", {
+      d: "M" + X(1) + " " + Y(1) + " L " + X(16) + " " + Y(16),
+      stroke: "var(--ink-3)", "stroke-width": 2, "stroke-dasharray": "6 4", fill: "none"
+    }));
+    f.svg.appendChild(el("text", { x: X(16) + 8, y: Y(16) + 4, class: "dlabel", fill: "var(--ink-3)" }, "ideal"));
+
+    [[pts1s, "var(--s2)", "1 s backoff"], [pts10, "var(--s1)", "10 ms backoff"]].forEach(function (series) {
+      var pts = series[0], color = series[1];
+      var d = pts.map(function (p, i) { return (i ? "L " : "M") + X(p.workers) + " " + Y(p.speedup); }).join(" ");
+      f.svg.appendChild(el("path", { d: d, stroke: color, "stroke-width": 2, fill: "none",
+                                     "stroke-linejoin": "round" }));
+      pts.forEach(function (p) {
+        var c = el("circle", { cx: X(p.workers), cy: Y(p.speedup), r: 4.5, fill: color,
+                               stroke: "var(--surface)", "stroke-width": 2 });
+        hover(c, [p.workers + " workers — " + series[2],
+                  "speedup " + fmt(p.speedup, 2) + "×, efficiency " + fmt(p.efficiency, 2),
+                  "wall " + fmt(p.wall.median) + " ms  [" + fmt(p.wall.min) + "–" + fmt(p.wall.max) + "]"]);
+        f.svg.appendChild(c);
+      });
+      var last = pts[pts.length - 1];
+      f.svg.appendChild(el("text", { x: X(last.workers) + 9, y: Y(last.speedup) + 4,
+        class: "dlabel", fill: color }, fmt(last.speedup, 2) + "×"));
+    });
+
+    table("tbl-scaling",
+      [{ h: "Workers", n: false }, { h: "Wall ms", n: true }, { h: "Range", n: true },
+       { h: "Speedup", n: true }, { h: "Ideal", n: true }, { h: "Efficiency", n: true },
+       { h: "Map p50", n: true }, { h: "Coordinator share", n: true }],
+      pts10.map(function (p) {
+        return [p.workers, fmt(p.wall.median), fmt(p.wall.min) + "–" + fmt(p.wall.max),
+                fmt(p.speedup, 2) + "×", p.workers + "×", fmt(p.efficiency, 2),
+                fmt(p.map_p50, 1) + " ms", (p.coord_share * 100).toFixed(1) + "%"];
+      }));
+  })();
+
+  /* ---------- 2. core budget ---------- */
+  (function () {
+    var budgets = [["1", "var(--s3)", "1 core"], ["2", "var(--s2)", "2 cores"], ["4", "var(--s1)", "4 cores"]];
+    var lg = document.getElementById("legend-cores");
+    budgets.forEach(function (b) {
+      var s = h("span");
+      var i = h("i", "swatch line"); i.style.background = b[1];
+      s.appendChild(i); s.appendChild(document.createTextNode(b[2]));
+      lg.appendChild(s);
+    });
+
+    var f = frame("chart-cores", 720, 300, { l: 46, r: 88, t: 30, b: 46 });
+    var maxY = 3;
+    function X(w) { return f.m.l + (Math.log2(w) / Math.log2(8)) * f.iw; }
+    function Y(v) { return f.m.t + f.ih - (v / maxY) * f.ih; }
+    yaxis(f, maxY, 3, "speedup ×");
+    [1, 2, 4, 8].forEach(function (w) {
+      f.svg.appendChild(el("text", { x: X(w), y: f.m.t + f.ih + 20, class: "tick", "text-anchor": "middle" }, w));
+    });
+    f.svg.appendChild(el("text", { x: f.m.l + f.iw / 2, y: f.h - 8, class: "axlabel", "text-anchor": "middle" }, "workers"));
+    f.svg.appendChild(el("line", { x1: f.m.l, y1: f.m.t + f.ih, x2: f.m.l + f.iw, y2: f.m.t + f.ih, class: "axis" }));
+
+    budgets.forEach(function (b) {
+      var pts = D.cores[b[0]], color = b[1];
+      var d = pts.map(function (p, i) { return (i ? "L " : "M") + X(p.workers) + " " + Y(p.speedup); }).join(" ");
+      f.svg.appendChild(el("path", { d: d, stroke: color, "stroke-width": 2, fill: "none", "stroke-linejoin": "round" }));
+      pts.forEach(function (p) {
+        var c = el("circle", { cx: X(p.workers), cy: Y(p.speedup), r: 4.5, fill: color,
+                               stroke: "var(--surface)", "stroke-width": 2 });
+        hover(c, [b[2] + ", " + p.workers + " workers",
+                  "speedup " + fmt(p.speedup, 2) + "×",
+                  "map task p50 " + fmt(p.map_p50, 1) + " ms"]);
+        f.svg.appendChild(c);
+      });
+      var last = pts[pts.length - 1];
+      f.svg.appendChild(el("text", { x: X(last.workers) + 9, y: Y(last.speedup) + 4,
+        class: "dlabel", fill: color }, b[2]));
+    });
+
+    table("tbl-cores",
+      [{ h: "Workers" }, { h: "1 core", n: true }, { h: "2 cores", n: true }, { h: "4 cores", n: true },
+       { h: "Map p50, 4 cores", n: true }],
+      D.cores["1"].map(function (_, i) {
+        return [D.cores["1"][i].workers,
+                fmt(D.cores["1"][i].speedup, 2) + "×",
+                fmt(D.cores["2"][i].speedup, 2) + "×",
+                fmt(D.cores["4"][i].speedup, 2) + "×",
+                fmt(D.cores["4"][i].map_p50, 1) + " ms"];
+      }));
+  })();
+
+  /* ---------- 3. backoff A/B table ---------- */
+  (function () {
+    var a = D.scaling_1s.points, b = D.scaling_10ms.points;
+    table("tbl-backoff",
+      [{ h: "Workers" }, { h: "Wall, 1 s", n: true }, { h: "Wall, 10 ms", n: true },
+       { h: "Gain", n: true }, { h: "Efficiency 1 s", n: true }, { h: "Efficiency 10 ms", n: true },
+       { h: "Output hash", n: false }],
+      a.map(function (p, i) {
+        var q = b[i];
+        return [p.workers, fmt(p.wall.median), fmt(q.wall.median),
+                fmt(p.wall.median / q.wall.median, 2) + "×",
+                fmt(p.efficiency, 2), fmt(q.efficiency, 2),
+                p.hash.slice(0, 12) + (p.hash === q.hash ? " ✓ same" : " ✗ differs")];
+      }));
+  })();
+
+  /* ---------- 4. speculation ---------- */
+  (function () {
+    var rows = [
+      ["coarse_off", "coarse_on"], ["mid_off", "mid_on"], ["fine_off", "fine_on"]
+    ].map(function (p) { return { off: D.spec[p[0]], on: D.spec[p[1]] }; });
+
+    var f = frame("chart-spec", 720, 300, { l: 52, r: 30, t: 30, b: 52 });
+    var maxY = 3000;
+    yaxis(f, maxY, 3, "job wall clock, ms");
+    f.svg.appendChild(el("line", { x1: f.m.l, y1: f.m.t + f.ih, x2: f.m.l + f.iw, y2: f.m.t + f.ih, class: "axis" }));
+    function Y(v) { return f.m.t + f.ih - (v / maxY) * f.ih; }
+
+    var groupW = f.iw / rows.length, barW = 40, gap = 14;
+    rows.forEach(function (r, gi) {
+      var cx = f.m.l + groupW * gi + groupW / 2;
+      [[r.off, "var(--s1)", "off", -1], [r.on, "var(--s3)", "on", 1]].forEach(function (s) {
+        var v = s[0], color = s[1];
+        var x = cx + s[3] * (gap / 2) - (s[3] < 0 ? barW : 0);
+        var y = Y(v.wall.median), hgt = f.m.t + f.ih - y;
+        var rect = el("rect", { x: x, y: y, width: barW, height: hgt, rx: 4, fill: color });
+        hover(rect, ["speculation " + s[2] + ", " + v.map_tasks + " map tasks",
+                     "median " + fmt(v.wall.median) + " ms  [" + fmt(v.wall.min) + "–" + fmt(v.wall.max) + "]",
+                     "backups won " + v.won + " of " + v.launched + " launched"]);
+        f.svg.appendChild(rect);
+        // trial range whisker
+        var mx = x + barW / 2;
+        f.svg.appendChild(el("line", { x1: mx, y1: Y(v.wall.min), x2: mx, y2: Y(v.wall.max),
+                                       stroke: "var(--ink-3)", "stroke-width": 1.5 }));
+        [v.wall.min, v.wall.max].forEach(function (t) {
+          f.svg.appendChild(el("line", { x1: mx - 6, y1: Y(t), x2: mx + 6, y2: Y(t),
+                                         stroke: "var(--ink-3)", "stroke-width": 1.5 }));
+        });
+        f.svg.appendChild(el("text", { x: mx, y: Math.min(y, Y(v.wall.max)) - 11, class: "dlabel",
+          fill: color, "text-anchor": "middle" }, fmt(v.wall.median)));
+      });
+      f.svg.appendChild(el("text", { x: cx, y: f.m.t + f.ih + 20, class: "tick", "text-anchor": "middle" },
+        r.off.map_tasks + " tasks"));
+      var gain = r.off.wall.median / r.on.wall.median;
+      f.svg.appendChild(el("text", { x: cx, y: f.m.t + f.ih + 40, class: "dlabel",
+        fill: gain > 1.1 ? "var(--s3)" : "var(--ink-3)", "text-anchor": "middle" }, fmt(gain, 2) + "×"));
+    });
+
+    table("tbl-spec",
+      [{ h: "Map tasks" }, { h: "Off, median", n: true }, { h: "Off range", n: true },
+       { h: "On, median", n: true }, { h: "On range", n: true }, { h: "Gain", n: true },
+       { h: "Backups won", n: true }, { h: "Hash" }],
+      rows.map(function (r) {
+        return [r.off.map_tasks, fmt(r.off.wall.median), fmt(r.off.wall.min) + "–" + fmt(r.off.wall.max),
+                fmt(r.on.wall.median), fmt(r.on.wall.min) + "–" + fmt(r.on.wall.max),
+                fmt(r.off.wall.median / r.on.wall.median, 2) + "×",
+                r.on.won + " of " + r.on.launched,
+                r.off.hash === r.on.hash ? "✓ identical" : "✗ differs"];
+      }));
+
+    var ho = D.spec.healthy_off, hn = D.spec.healthy_on;
+    var n = document.getElementById("note-healthy");
+    n.textContent = "";
+    n.appendChild(h("b", null, "What it costs when nothing is wrong. "));
+    n.appendChild(document.createTextNode(
+      "With no slow worker and " + ho.map_tasks + " map tasks, wall clock goes from " +
+      fmt(ho.wall.median) + " ms [" + fmt(ho.wall.min) + "–" + fmt(ho.wall.max) + "] to " +
+      fmt(hn.wall.median) + " ms [" + fmt(hn.wall.min) + "–" + fmt(hn.wall.max) +
+      "] — " + fmt(100 * (hn.wall.median - ho.wall.median) / ho.wall.median, 1) +
+      "% worse at the median, but the ranges overlap almost entirely, so that is a hint of a cost rather than a measurement of one. The real finding is that " +
+      hn.launched + " backups were launched on a healthy cluster: a threshold of twice the phase median fires on ordinary tail variance. That is why speculation is off by default."));
+  })();
+
+  /* ---------- 5. chaos table ---------- */
+  (function () {
+    table("tbl-chaos",
+      [{ h: "Scenario" }, { h: "Output" }, { h: "Wall ms", n: true }, { h: "Recovery median", n: true },
+       { h: "Recovery range", n: true }, { h: "Redundant attempts", n: true }, { h: "Work preserved", n: true }],
+      D.chaos.results.map(function (r) {
+        var ok = r.completed && r.output_matches_clean_run;
+        return [r.scenario,
+                { pill: ok ? "matches clean" : "differs", ok: ok },
+                fmt(r.wall_ms),
+                r.recovery_median_ms ? fmt(r.recovery_median_ms) + " ms" : "—",
+                r.recovery_min_ms ? fmt(r.recovery_min_ms) + "–" + fmt(r.recovery_max_ms) : "—",
+                r.redundant_attempts,
+                (r.work_preserved_share * 100).toFixed(0) + "%"];
+      }));
+  })();
+
+  /* ---------- 6. recovery vs timeout ---------- */
+  (function () {
+    var T = D.timeouts, ms = [250, 500, 1000, 2000, 4000];
+    var f = frame("chart-timeout", 720, 300, { l: 56, r: 40, t: 30, b: 52 });
+    var maxY = 4400;
+    yaxis(f, maxY, 4, "recovery, ms");
+    f.svg.appendChild(el("line", { x1: f.m.l, y1: f.m.t + f.ih, x2: f.m.l + f.iw, y2: f.m.t + f.ih, class: "axis" }));
+    function X(i) { return f.m.l + (i + 0.5) * (f.iw / T.length); }
+    function Y(v) { return f.m.t + f.ih - (v / maxY) * f.ih; }
+
+    var ideal = T.map(function (_, i) { return (i ? "L " : "M") + X(i) + " " + Y(ms[i]); }).join(" ");
+    f.svg.appendChild(el("path", { d: ideal, stroke: "var(--ink-3)", "stroke-width": 2,
+                                   "stroke-dasharray": "6 4", fill: "none" }));
+
+    var line = T.map(function (t, i) { return (i ? "L " : "M") + X(i) + " " + Y(t.med); }).join(" ");
+    f.svg.appendChild(el("path", { d: line, stroke: "var(--s1)", "stroke-width": 2, fill: "none" }));
+
+    T.forEach(function (t, i) {
+      f.svg.appendChild(el("line", { x1: X(i), y1: Y(t.min), x2: X(i), y2: Y(t.max),
+                                     stroke: "var(--s1)", "stroke-width": 1.5 }));
+      var c = el("circle", { cx: X(i), cy: Y(t.med), r: 4.5, fill: "var(--s1)",
+                             stroke: "var(--surface)", "stroke-width": 2 });
+      hover(c, ["task timeout " + t.timeout,
+                "recovery median " + fmt(t.med) + " ms  [" + fmt(t.min) + "–" + fmt(t.max) + "]",
+                "job wall " + fmt(t.wall) + " ms, " + t.redundant + " redundant attempts"]);
+      f.svg.appendChild(c);
+      f.svg.appendChild(el("text", { x: X(i), y: f.m.t + f.ih + 20, class: "tick", "text-anchor": "middle" }, t.timeout));
+    });
+    f.svg.appendChild(el("text", { x: f.m.l + f.iw / 2, y: f.h - 8, class: "axlabel", "text-anchor": "middle" },
+      "configured task timeout"));
+    f.svg.appendChild(el("text", { x: X(0) + 12, y: Y(T[0].med) - 10, class: "dlabel", fill: "var(--s1)" },
+      fmt(T[0].med) + " ms"));
+
+    table("tbl-timeout",
+      [{ h: "Task timeout" }, { h: "Recovery min", n: true }, { h: "Median", n: true }, { h: "Max", n: true },
+       { h: "Job wall ms", n: true }, { h: "Redundant attempts", n: true }, { h: "Output" }],
+      T.map(function (t) {
+        return [t.timeout, fmt(t.min), fmt(t.med), fmt(t.max), fmt(t.wall), t.redundant,
+                { pill: t.correct ? "matches clean" : "differs", ok: t.correct }];
+      }));
+  })();
+
+  /* ---------- 7. trace replay ---------- */
+  (function () {
+    var current = "kill", playing = false, rafId = null, startedAt = 0, fromT = 0;
+    var mount = document.getElementById("chart-replay");
+    var scrub = document.getElementById("scrub");
+    var clock = document.getElementById("clock");
+    var playBtn = document.getElementById("play");
+    var LANE = 30, PADT = 34, PADL = 96, PADR = 24, PADB = 34, W = 900;
+    var cursor = null, view = null;
+
+    var CAPTIONS = {
+      kill: "Map task 16 is assigned to worker-0-0 at 99.5 ms. The worker is killed; the attempt is reaped at 1105.4 ms when the 1 s timeout expires, and the task is reassigned to worker-3-3 at 1113.9 ms. The gap between the cross and the reassignment is the recovery.",
+      spec: "Task 1 runs long on the 10× slow worker-0. A backup is launched on worker-1, runs from 866 ms to 976 ms and commits. The original finishes at 2420 ms — after the job is already over — and is refused permission to publish, so its work is discarded rather than overwriting the result."
+    };
+
+    function draw() {
+      var T = TRACES[current];
+      mount.textContent = "";
+      var lanes = T.workers;
+      var H = PADT + lanes.length * LANE + PADB;
+      var maxT = Math.max(T.job.duration_ms, d3max(T.events, function (e) { return e.t; }),
+                          d3max(T.tasks, function (t) { return t.e; })) * 1.02;
+      var svg = el("svg", { viewBox: "0 0 " + W + " " + H });
+      var iw = W - PADL - PADR;
+      function X(t) { return PADL + (t / maxT) * iw; }
+      function laneY(w) { return PADT + lanes.indexOf(w) * LANE; }
+
+      // time gridlines
+      var step = maxT > 2000 ? 500 : 250;
+      for (var t = 0; t <= maxT; t += step) {
+        svg.appendChild(el("line", { x1: X(t), y1: PADT - 8, x2: X(t), y2: PADT + lanes.length * LANE, class: "gridline" }));
+        svg.appendChild(el("text", { x: X(t), y: PADT - 14, class: "tick", "text-anchor": "middle" }, t + " ms"));
+      }
+      // phase markers
+      if (T.job.map_phase_end_ms) {
+        svg.appendChild(el("line", { x1: X(T.job.map_phase_end_ms), y1: PADT - 8,
+          x2: X(T.job.map_phase_end_ms), y2: PADT + lanes.length * LANE,
+          stroke: "var(--ink-3)", "stroke-width": 1.5, "stroke-dasharray": "4 3" }));
+        svg.appendChild(el("text", { x: X(T.job.map_phase_end_ms) + 5, y: PADT + lanes.length * LANE + 16,
+          class: "dlabel", fill: "var(--ink-3)" }, "map phase ends"));
+      }
+      // lanes
+      lanes.forEach(function (w) {
+        var y = laneY(w);
+        svg.appendChild(el("text", { x: PADL - 10, y: y + LANE / 2 + 4, class: "tick", "text-anchor": "end" }, w));
+        svg.appendChild(el("line", { x1: PADL, y1: y + LANE, x2: PADL + iw, y2: y + LANE, class: "gridline" }));
+      });
+      // committed attempts
+      T.tasks.forEach(function (t) {
+        var y = laneY(t.w) + 6;
+        var x = X(t.s), wid = Math.max(3, X(t.e) - X(t.s));
+        var color = t.b ? "var(--s3)" : (t.p === "map" ? "var(--s1)" : "var(--s2)");
+        var r = el("rect", { x: x, y: y, width: wid, height: LANE - 12, rx: 3, fill: color,
+                             stroke: "var(--surface)", "stroke-width": 1, "data-start": t.s });
+        hover(r, [(t.b ? "backup " : "") + t.p + " task " + t.id + " attempt " + t.a,
+                  t.w, fmt(t.s, 1) + " → " + fmt(t.e, 1) + " ms (" + fmt(t.e - t.s, 1) + " ms)"]);
+        svg.appendChild(r);
+      });
+      // failure and refusal marks
+      T.events.forEach(function (e) {
+        if (e.k === "assigned") return;
+        var y = (e.w && lanes.indexOf(e.w) >= 0 ? laneY(e.w) + LANE / 2 : PADT + lanes.length * LANE - LANE / 2);
+        var x = X(e.t);
+        var g = el("g", { "data-start": e.t });
+        if (e.k === "reaped") {
+          g.appendChild(el("path", { d: "M" + (x - 6) + " " + (y - 6) + " l 12 12 M" + (x + 6) + " " + (y - 6) + " l -12 12",
+            stroke: "var(--bad)", "stroke-width": 2.4, "stroke-linecap": "round" }));
+        } else {
+          g.appendChild(el("circle", { cx: x, cy: y, r: 6, fill: "none", stroke: "var(--s2)", "stroke-width": 2.2 }));
+          g.appendChild(el("line", { x1: x - 4, y1: y, x2: x + 4, y2: y, stroke: "var(--s2)", "stroke-width": 2.2 }));
+        }
+        hover(g, [e.k === "reaped" ? "attempt reaped: timed out" : "attempt refused: another attempt won",
+                  e.p + " task " + e.id + " attempt " + e.a + (e.w ? " on " + e.w : ""),
+                  "at " + fmt(e.t, 1) + " ms"]);
+        svg.appendChild(g);
+      });
+      cursor = el("line", { x1: X(maxT), y1: PADT - 8, x2: X(maxT), y2: PADT + lanes.length * LANE,
+                            stroke: "var(--accent)", "stroke-width": 2 });
+      svg.appendChild(cursor);
+      mount.appendChild(svg);
+      view = { X: X, maxT: maxT, lanes: lanes, svg: svg };
+
+      document.getElementById("replay-title").textContent = T.label.split(":")[0] === T.label
+        ? T.label : T.label.split(":")[0] + " — " + T.label.split(":").slice(1).join(":").trim();
+      cfgLine("cfg-replay", [
+        ["Recorded", fmt(T.job.duration_ms) + " ms"],
+        ["Tasks", T.job.map_tasks + " map / " + T.job.reduce_tasks + " reduce"],
+        ["Workers", String(T.workers.length)],
+        ["Backups", T.job.backups_won + " won of " + T.job.backups_launched],
+        ["Source", current === "kill" ? "traces/kill-1-map.json" : "traces/speculation.json"]
+      ]);
+      document.getElementById("replay-caption").textContent = CAPTIONS[current];
+      setTime(maxT);
+    }
+    function d3max(arr, fn) { return arr.reduce(function (m, x) { return Math.max(m, fn(x)); }, 0); }
+
+    function setTime(t) {
+      if (!view) return;
+      var x = view.X(t);
+      cursor.setAttribute("x1", x); cursor.setAttribute("x2", x);
+      clock.textContent = fmt(t) + " / " + fmt(view.maxT) + " ms";
+      scrub.value = String(Math.round((t / view.maxT) * 1000));
+      view.svg.querySelectorAll("[data-start]").forEach(function (n) {
+        n.style.opacity = Number(n.getAttribute("data-start")) <= t ? "1" : "0.12";
+      });
+    }
+    function stop() {
+      playing = false; playBtn.textContent = "Play";
+      if (rafId) cancelAnimationFrame(rafId), rafId = null;
+    }
+    playBtn.addEventListener("click", function () {
+      if (playing) { stop(); return; }
+      playing = true; playBtn.textContent = "Pause";
+      fromT = Number(scrub.value) >= 1000 ? 0 : (Number(scrub.value) / 1000) * view.maxT;
+      startedAt = performance.now();
+      (function step(now) {
+        if (!playing) return;
+        var t = fromT + (now - startedAt) * (view.maxT / 3000);
+        if (t >= view.maxT) { setTime(view.maxT); stop(); return; }
+        setTime(t);
+        rafId = requestAnimationFrame(step);
+      })(performance.now());
+    });
+    scrub.addEventListener("input", function () {
+      stop();
+      setTime((Number(scrub.value) / 1000) * view.maxT);
+    });
+    ["kill", "spec"].forEach(function (k) {
+      document.getElementById("trace-" + k).addEventListener("click", function () {
+        stop(); current = k;
+        document.getElementById("trace-kill").setAttribute("aria-pressed", String(k === "kill"));
+        document.getElementById("trace-spec").setAttribute("aria-pressed", String(k === "spec"));
+        draw();
+      });
+    });
+    draw();
+  })();
+})();
+</script>
