@@ -26,6 +26,11 @@ type RunConfig struct {
 	WaitBackoff time.Duration
 	Seed        int64
 	WorkDir     string
+
+	Speculation          bool
+	SpeculationThreshold float64
+	SlowWorkers          int     // How many workers are made artificially slow
+	SlowFactor           float64 // How many times slower those workers run
 }
 
 // RunResult is everything one job produced.
@@ -70,6 +75,9 @@ func runJob(cfg RunConfig) (RunResult, error) {
 		WaitBackoff: cfg.WaitBackoff,
 		WorkDir:     cfg.WorkDir,
 		SocketPath:  filepath.Join(sockDir, "mr.sock"),
+
+		Speculation:          cfg.Speculation,
+		SpeculationThreshold: cfg.SpeculationThreshold,
 	})
 	defer coordinator.Shutdown()
 
@@ -78,9 +86,14 @@ func runJob(cfg RunConfig) (RunResult, error) {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
+			slow := 0.0
+			if id < cfg.SlowWorkers {
+				slow = cfg.SlowFactor
+			}
 			mr.RunWorker(app.Map, app.Reduce, mr.WorkerOptions{
 				ID:         fmt.Sprintf("worker-%d", id),
 				SocketPath: filepath.Join(sockDir, "mr.sock"),
+				SlowFactor: slow,
 			})
 		}(i)
 	}

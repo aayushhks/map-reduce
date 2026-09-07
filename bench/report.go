@@ -35,6 +35,8 @@ func summarizeTrial(index int, r RunResult) Trial {
 		IntermediateFiles: t.NMap * t.NReduce,
 		RecordsEmitted:    records,
 		OutputKeys:        r.OutputKeys,
+		BackupsLaunched:   t.BackupsLaunched,
+		BackupsWon:        t.BackupsWon,
 		OutputHash:        r.OutputHash,
 		MapTaskMS:         describe(mapDurations),
 		ReduceTaskMS:      describe(reduceDurations),

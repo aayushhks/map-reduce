@@ -37,6 +37,10 @@ type RunReport struct {
 	NReduce       int     `json:"n_reduce"`
 	SplitBytes    int     `json:"split_bytes"`
 	WaitBackoffMS float64 `json:"wait_backoff_ms"`
+	Speculation   bool    `json:"speculation"`
+	SpecThreshold float64 `json:"speculation_threshold"`
+	SlowWorkers   int     `json:"slow_workers"`
+	SlowFactor    float64 `json:"slow_factor"`
 	Seed          int64   `json:"seed"`
 	Trials        int     `json:"trials"`
 	InputFiles    int     `json:"input_files"`
@@ -55,6 +59,8 @@ type Trial struct {
 	IntermediateFiles int          `json:"intermediate_files"`
 	RecordsEmitted    int64        `json:"records_emitted"`
 	OutputKeys        int          `json:"output_keys"`
+	BackupsLaunched   int64        `json:"backups_launched"`
+	BackupsWon        int64        `json:"backups_won"`
 	OutputHash        string       `json:"output_hash"`
 	MapTaskMS         Distribution `json:"map_task_ms"`
 	ReduceTaskMS      Distribution `json:"reduce_task_ms"`

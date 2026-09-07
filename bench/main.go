@@ -26,6 +26,10 @@ func main() {
 		seed       = flag.Int64("seed", 1, "seed controlling input ordering")
 		backoff    = flag.Duration("wait-backoff", 10*time.Millisecond, "worker sleep when no task is available")
 		workDir    = flag.String("workdir", "bench-tmp", "directory for intermediate and output files")
+		spec       = flag.Bool("speculation", false, "run backup attempts for straggler tasks")
+		specThresh = flag.Float64("spec-threshold", 2.0, "backup a task running this many times the phase median")
+		slowN      = flag.Int("slow-workers", 0, "how many workers to make artificially slow")
+		slowFactor = flag.Float64("slow-factor", 1, "how many times slower those workers run")
 		sweep      = flag.String("sweep", "", "comma separated worker counts to sweep, e.g. 1,2,4,8,16")
 		out        = flag.String("out", "", "write the JSON report to this path instead of stdout")
 	)
@@ -58,6 +62,11 @@ func main() {
 		WaitBackoff: *backoff,
 		Seed:        *seed,
 		WorkDir:     *workDir,
+
+		Speculation:          *spec,
+		SpeculationThreshold: *specThresh,
+		SlowWorkers:          *slowN,
+		SlowFactor:           *slowFactor,
 	}
 
 	if *sweep != "" {
@@ -72,6 +81,10 @@ func main() {
 			NReduce:       *nReduce,
 			SplitBytes:    *splitBytes,
 			WaitBackoffMS: millis(*backoff),
+			Speculation:   *spec,
+			SpecThreshold: *specThresh,
+			SlowWorkers:   *slowN,
+			SlowFactor:    *slowFactor,
 			Seed:          *seed,
 			Trials:        *trials,
 			InputFiles:    len(inputs),
@@ -89,8 +102,9 @@ func main() {
 		}
 		results = append(results, result)
 		trialReports = append(trialReports, summarizeTrial(i, result))
-		fmt.Fprintf(os.Stderr, "trial %d/%d: %.1f ms, hash %s\n",
-			i+1, *trials, trialReports[i].WallMS, result.OutputHash[:12])
+		fmt.Fprintf(os.Stderr, "trial %d/%d: %.1f ms, backups %d/%d, hash %s\n",
+			i+1, *trials, trialReports[i].WallMS,
+			trialReports[i].BackupsWon, trialReports[i].BackupsLaunched, result.OutputHash[:12])
 	}
 
 	median := medianTrial(trialReports)
@@ -106,6 +120,10 @@ func main() {
 			NReduce:       *nReduce,
 			SplitBytes:    *splitBytes,
 			WaitBackoffMS: millis(*backoff),
+			Speculation:   *spec,
+			SpecThreshold: *specThresh,
+			SlowWorkers:   *slowN,
+			SlowFactor:    *slowFactor,
 			Seed:          *seed,
 			Trials:        *trials,
 			InputFiles:    len(inputs),
