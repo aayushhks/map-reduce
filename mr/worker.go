@@ -39,7 +39,16 @@ type WorkerOptions struct {
 	ID         string  // Identifies this worker in coordinator logs and traces
 	SocketPath string  // Coordinator socket, defaults to the standalone path
 	SlowFactor float64 // Stretches every task by this factor, for straggler tests
+
+	// Interceptor runs before every RPC. Returning false drops the call, as if
+	// the request never reached the coordinator. Used by fault injection.
+	Interceptor func(rpcName string) bool
 }
+
+// rpcAttempts is how many times a worker retries an RPC before deciding the
+// coordinator is gone. Retries make a dropped message survivable; the commit
+// grant is idempotent so a retried report cannot lose work.
+const rpcAttempts = 4
 
 // pendingOutput is finished task output waiting for permission to publish.
 // Output stays in temp files until the coordinator names one attempt the
@@ -69,11 +78,12 @@ func (p pendingOutput) abandon() {
 
 // worker holds the state one worker needs for its request and report loop.
 type worker struct {
-	id      string
-	sock    string
-	slow    float64
-	mapf    func(string, string) []KeyValue
-	reducef func(string, []string) string
+	id        string
+	sock      string
+	slow      float64
+	intercept func(string) bool
+	mapf      func(string, string) []KeyValue
+	reducef   func(string, []string) string
 }
 
 // mr-main/mrworker.go calls this function.
@@ -87,7 +97,14 @@ func Worker(mapf func(string, string) []KeyValue,
 func RunWorker(mapf func(string, string) []KeyValue,
 	reducef func(string, []string) string, opts WorkerOptions) {
 
-	w := &worker{id: opts.ID, sock: opts.SocketPath, slow: opts.SlowFactor, mapf: mapf, reducef: reducef}
+	w := &worker{
+		id:        opts.ID,
+		sock:      opts.SocketPath,
+		slow:      opts.SlowFactor,
+		intercept: opts.Interceptor,
+		mapf:      mapf,
+		reducef:   reducef,
+	}
 	if w.sock == "" {
 		w.sock = coordinatorSock()
 	}
@@ -387,17 +404,32 @@ func (w *worker) commitTask(task *RequestTaskReply, metrics TaskMetrics) {
 // usually returns true.
 // returns false if something goes wrong.
 func (w *worker) call(rpcname string, args interface{}, reply interface{}) bool {
+	for attempt := 0; attempt < rpcAttempts; attempt++ {
+		if attempt > 0 {
+			time.Sleep(time.Duration(attempt) * 20 * time.Millisecond)
+		}
+		if w.dial(rpcname, args, reply) {
+			return true
+		}
+	}
+	return false
+}
+
+// dial makes one attempt at an RPC.
+func (w *worker) dial(rpcname string, args interface{}, reply interface{}) bool {
+	if w.intercept != nil && !w.intercept(rpcname) {
+		return false // Injected fault, the call never reaches the coordinator
+	}
+
 	c, err := rpc.DialHTTP("unix", w.sock)
 	if err != nil {
-		return false // Return false if coordinator is not reachable
+		return false // Coordinator is not reachable
 	}
 	defer c.Close()
 
-	err = c.Call(rpcname, args, reply)
-	if err == nil {
-		return true
+	if err := c.Call(rpcname, args, reply); err != nil {
+		log.Printf("rpc %v failed: %v", rpcname, err)
+		return false
 	}
-
-	log.Printf("rpc %v failed: %v", rpcname, err)
-	return false
+	return true
 }

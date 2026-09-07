@@ -63,6 +63,20 @@ type Coordinator struct {
 	reducePhaseStart time.Time
 	jobEnd           time.Time
 	taskMetrics      []TaskMetrics
+	events           []TaskEvent
+}
+
+// record appends one task event. Callers must hold c.mu.
+func (c *Coordinator) record(kind string, kind2 TaskType, taskID, attempt int, workerID string, backup bool) {
+	c.events = append(c.events, TaskEvent{
+		Kind:     kind,
+		TaskType: kind2,
+		TaskID:   taskID,
+		Attempt:  attempt,
+		WorkerID: workerID,
+		Backup:   backup,
+		At:       time.Now(),
+	})
 }
 
 // jobDone reports whether every task has finished. Callers must hold c.mu.
@@ -78,6 +92,9 @@ func (c *Coordinator) Trace() JobTrace {
 	tasks := make([]TaskMetrics, len(c.taskMetrics))
 	copy(tasks, c.taskMetrics)
 
+	events := make([]TaskEvent, len(c.events))
+	copy(events, c.events)
+
 	return JobTrace{
 		Start:            c.jobStart,
 		MapPhaseEnd:      c.mapPhaseEnd,
@@ -89,6 +106,7 @@ func (c *Coordinator) Trace() JobTrace {
 		BackupsLaunched:  c.backupsLaunched,
 		BackupsWon:       c.backupsWon,
 		Tasks:            tasks,
+		Events:           events,
 	}
 }
 
@@ -164,6 +182,8 @@ func (c *Coordinator) start(task *TaskInfo, kind TaskType, workerID string, back
 		Start:    time.Now(),
 		Backup:   backup,
 	})
+
+	c.record(EventAssigned, kind, task.ID, task.NextAttempt, workerID, backup)
 
 	reply.TaskType = kind
 	reply.TaskID = task.ID
@@ -247,8 +267,16 @@ func (c *Coordinator) ReportTask(args *ReportTaskArgs, reply *ReportTaskReply) e
 		return nil
 	}
 
+	// A retry from the attempt that already holds the clearance gets the same
+	// answer, so a dropped reply does not cost the work.
+	if task.State == Committing && task.Committer == args.Attempt {
+		reply.Commit = true
+		return nil
+	}
+
 	// Another attempt already won, or this attempt was reaped as timed out.
 	if task.State != InProgress || !task.isLive(args.Attempt) {
+		c.record(EventRefused, args.TaskType, args.TaskID, args.Attempt, args.WorkerID, false)
 		reply.Commit = false
 		return nil
 	}
@@ -283,6 +311,8 @@ func (c *Coordinator) CommitTask(args *CommitTaskArgs, reply *CommitTaskReply) e
 	if args.Metrics.Backup {
 		c.backupsWon++
 	}
+
+	c.record(EventCommitted, args.TaskType, args.TaskID, args.Attempt, args.WorkerID, args.Metrics.Backup)
 
 	task.State = Completed
 	task.Live = nil
@@ -395,6 +425,14 @@ func (c *Coordinator) reapTimeouts() {
 	c.reap(c.reduceTasks, "Reduce")
 }
 
+// kindOf maps a reaper label back to its task type.
+func kindOf(label string) TaskType {
+	if label == "Map" {
+		return MapTask
+	}
+	return ReduceTask
+}
+
 // reap drops expired attempts from one phase. Callers must hold c.mu.
 func (c *Coordinator) reap(tasks []TaskInfo, label string) {
 	for i := range tasks {
@@ -405,6 +443,7 @@ func (c *Coordinator) reap(tasks []TaskInfo, label string) {
 		if task.State == Committing {
 			if time.Since(task.CommitStart) > c.cfg.TaskTimeout {
 				log.Printf("%s task %d stalled while committing. Reassigning.", label, task.ID)
+				c.record(EventReaped, kindOf(label), task.ID, task.Committer, "", false)
 				task.State = Idle
 				task.Live = nil
 			}
@@ -419,6 +458,7 @@ func (c *Coordinator) reap(tasks []TaskInfo, label string) {
 		for _, a := range task.Live {
 			if time.Since(a.Start) > c.cfg.TaskTimeout {
 				log.Printf("%s task %d attempt %d timed out. Reassigning.", label, task.ID, a.ID)
+				c.record(EventReaped, kindOf(label), task.ID, a.ID, a.WorkerID, a.Backup)
 				continue
 			}
 			live = append(live, a)

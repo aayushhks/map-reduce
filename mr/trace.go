@@ -38,6 +38,27 @@ type RPCStats struct {
 	ReportTime   time.Duration
 }
 
+// Event kinds recorded in a job trace.
+const (
+	EventAssigned  = "assigned"  // A task attempt was handed to a worker
+	EventReaped    = "reaped"    // An attempt was dropped for running past the timeout
+	EventCommitted = "committed" // An attempt published its output and finished the task
+	EventRefused   = "refused"   // An attempt asked to publish and was told it lost
+)
+
+// TaskEvent is one thing that happened to a task attempt, with the time it
+// happened. The sequence is enough to reconstruct a job, including how long a
+// failure took to notice and which attempts did work that was thrown away.
+type TaskEvent struct {
+	Kind     string
+	TaskType TaskType
+	TaskID   int
+	Attempt  int
+	WorkerID string
+	Backup   bool
+	At       time.Time
+}
+
 // JobTrace is the full record of one job, enough to rebuild a timeline.
 type JobTrace struct {
 	Start            time.Time
@@ -50,6 +71,7 @@ type JobTrace struct {
 	BackupsLaunched  int64
 	BackupsWon       int64
 	Tasks            []TaskMetrics
+	Events           []TaskEvent
 }
 
 // countingWriter tallies the bytes written through it.
