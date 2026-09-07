@@ -1,6 +1,7 @@
 package mr
 
 import (
+	"log/slog"
 	"path/filepath"
 	"time"
 )
@@ -22,6 +23,14 @@ type Config struct {
 	Speculation           bool
 	SpeculationThreshold  float64
 	SpeculationMinSamples int
+
+	// Logger receives one structured record per task transition. Nil means no
+	// logging at all, which is what a benchmark wants.
+	Logger *slog.Logger
+
+	// StatusAddr, when set, serves the live job status on this TCP address in
+	// addition to the coordinator socket.
+	StatusAddr string
 }
 
 // DefaultConfig returns the settings the standalone mrcoordinator binary uses.
@@ -59,6 +68,9 @@ func (c Config) withDefaults() Config {
 	}
 	if c.SpeculationMinSamples <= 0 {
 		c.SpeculationMinSamples = d.SpeculationMinSamples
+	}
+	if c.Logger == nil {
+		c.Logger = DiscardLogger()
 	}
 	return c
 }

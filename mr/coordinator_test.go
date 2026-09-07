@@ -29,19 +29,27 @@ func newTestCoordinator(t *testing.T, nMap, nReduce int, cfg Config) *Coordinato
 	return c
 }
 
-func request(t *testing.T, c *Coordinator, workerID string) RequestTaskReply {
+// handout is a task the coordinator gave to a named worker, so a test can
+// report back as that worker.
+type handout struct {
+	reply  RequestTaskReply
+	worker string
+}
+
+func request(t *testing.T, c *Coordinator, workerID string) handout {
 	t.Helper()
 	reply := RequestTaskReply{}
 	if err := c.RequestTask(&RequestTaskArgs{WorkerID: workerID}, &reply); err != nil {
 		t.Fatalf("RequestTask: %v", err)
 	}
-	return reply
+	return handout{reply: reply, worker: workerID}
 }
 
 // askToCommit runs the first half of the commit protocol.
-func askToCommit(t *testing.T, c *Coordinator, r RequestTaskReply) bool {
+func askToCommit(t *testing.T, c *Coordinator, h handout) bool {
 	t.Helper()
-	args := ReportTaskArgs{TaskID: r.TaskID, TaskType: r.TaskType, Attempt: r.Attempt}
+	r := h.reply
+	args := ReportTaskArgs{TaskID: r.TaskID, TaskType: r.TaskType, Attempt: r.Attempt, WorkerID: h.worker}
 	reply := ReportTaskReply{}
 	if err := c.ReportTask(&args, &reply); err != nil {
 		t.Fatalf("ReportTask: %v", err)
@@ -50,13 +58,16 @@ func askToCommit(t *testing.T, c *Coordinator, r RequestTaskReply) bool {
 }
 
 // confirm runs the second half, standing in for a worker that published.
-func confirm(t *testing.T, c *Coordinator, r RequestTaskReply) {
+func confirm(t *testing.T, c *Coordinator, h handout) {
 	t.Helper()
+	r := h.reply
 	args := CommitTaskArgs{
 		TaskID:   r.TaskID,
 		TaskType: r.TaskType,
 		Attempt:  r.Attempt,
+		WorkerID: h.worker,
 		Metrics: TaskMetrics{
+			WorkerID: h.worker,
 			TaskType: r.TaskType,
 			TaskID:   r.TaskID,
 			Attempt:  r.Attempt,
@@ -70,12 +81,12 @@ func confirm(t *testing.T, c *Coordinator, r RequestTaskReply) {
 	}
 }
 
-func finish(t *testing.T, c *Coordinator, r RequestTaskReply) {
+func finish(t *testing.T, c *Coordinator, h handout) {
 	t.Helper()
-	if !askToCommit(t, c, r) {
-		t.Fatalf("task %d attempt %d was refused permission to commit", r.TaskID, r.Attempt)
+	if !askToCommit(t, c, h) {
+		t.Fatalf("task %d attempt %d was refused permission to commit", h.reply.TaskID, h.reply.Attempt)
 	}
-	confirm(t, c, r)
+	confirm(t, c, h)
 }
 
 // A worker whose attempt timed out must not be able to publish over the
@@ -84,8 +95,8 @@ func TestTimedOutAttemptIsRefusedCommit(t *testing.T) {
 	c := newTestCoordinator(t, 1, 1, Config{})
 
 	first := request(t, c, "worker-a")
-	if first.TaskType != MapTask {
-		t.Fatalf("want a map task, got %v", first.TaskType)
+	if first.reply.TaskType != MapTask {
+		t.Fatalf("want a map task, got %v", first.reply.TaskType)
 	}
 
 	// Age the attempt past the timeout and let the reaper drop it.
@@ -95,8 +106,8 @@ func TestTimedOutAttemptIsRefusedCommit(t *testing.T) {
 	c.reapTimeouts()
 
 	second := request(t, c, "worker-b")
-	if second.Attempt == first.Attempt {
-		t.Fatalf("reassignment should issue a new attempt, both were %d", first.Attempt)
+	if second.reply.Attempt == first.reply.Attempt {
+		t.Fatalf("reassignment should issue a new attempt, both were %d", first.reply.Attempt)
 	}
 
 	if askToCommit(t, c, first) {
@@ -125,15 +136,15 @@ func TestOnlyOneAttemptMayCommit(t *testing.T) {
 
 	original := request(t, c, "worker-a")
 	c.mu.Lock()
-	c.mapTasks[original.TaskID].Live[0].Start = time.Now().Add(-time.Hour)
+	c.mapTasks[original.reply.TaskID].Live[0].Start = time.Now().Add(-time.Hour)
 	c.mu.Unlock()
 
 	backup := request(t, c, "worker-b")
-	if !backup.Backup || backup.TaskID != original.TaskID {
+	if !backup.reply.Backup || backup.reply.TaskID != original.reply.TaskID {
 		t.Fatalf("want a backup for task %d, got task %d backup=%v",
-			original.TaskID, backup.TaskID, backup.Backup)
+			original.reply.TaskID, backup.reply.TaskID, backup.reply.Backup)
 	}
-	if backup.Attempt == original.Attempt {
+	if backup.reply.Attempt == original.reply.Attempt {
 		t.Fatal("backup reused the original attempt id")
 	}
 
@@ -167,8 +178,8 @@ func TestNoBackupForATaskRunningAtTheMedian(t *testing.T) {
 	request(t, c, "worker-a") // second map task, just started
 
 	reply := request(t, c, "worker-b")
-	if reply.TaskType != WaitTask {
-		t.Fatalf("want a wait, got task type %v backup=%v", reply.TaskType, reply.Backup)
+	if reply.reply.TaskType != WaitTask {
+		t.Fatalf("want a wait, got task type %v backup=%v", reply.reply.TaskType, reply.reply.Backup)
 	}
 }
 
@@ -180,11 +191,11 @@ func TestSpeculationOffLaunchesNoBackups(t *testing.T) {
 	slow := request(t, c, "worker-a")
 
 	c.mu.Lock()
-	c.mapTasks[slow.TaskID].Live[0].Start = time.Now().Add(-time.Hour)
+	c.mapTasks[slow.reply.TaskID].Live[0].Start = time.Now().Add(-time.Hour)
 	c.mu.Unlock()
 
-	if reply := request(t, c, "worker-b"); reply.TaskType != WaitTask {
-		t.Fatalf("want a wait with speculation off, got %v", reply.TaskType)
+	if reply := request(t, c, "worker-b"); reply.reply.TaskType != WaitTask {
+		t.Fatalf("want a wait with speculation off, got %v", reply.reply.TaskType)
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -216,8 +227,8 @@ func TestCommitterThatNeverConfirmsIsRerun(t *testing.T) {
 	}
 
 	second := request(t, c, "worker-b")
-	if second.TaskType != MapTask {
-		t.Fatalf("task was not handed out again, got %v", second.TaskType)
+	if second.reply.TaskType != MapTask {
+		t.Fatalf("task was not handed out again, got %v", second.reply.TaskType)
 	}
 	finish(t, c, second)
 }
@@ -256,8 +267,8 @@ func TestDoneFollowsTaskCounters(t *testing.T) {
 	}
 
 	r := request(t, c, "worker-a")
-	if r.TaskType != ReduceTask {
-		t.Fatalf("want a reduce task, got %v", r.TaskType)
+	if r.reply.TaskType != ReduceTask {
+		t.Fatalf("want a reduce task, got %v", r.reply.TaskType)
 	}
 	finish(t, c, r)
 

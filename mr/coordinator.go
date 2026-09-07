@@ -44,8 +44,9 @@ type TaskInfo struct {
 type Coordinator struct {
 	mu sync.Mutex // Mutex to protect shared state
 
-	cfg      Config
-	listener net.Listener
+	cfg            Config
+	listener       net.Listener
+	statusListener net.Listener
 
 	mapTasks    []TaskInfo
 	reduceTasks []TaskInfo
@@ -66,17 +67,39 @@ type Coordinator struct {
 	events           []TaskEvent
 }
 
-// record appends one task event. Callers must hold c.mu.
-func (c *Coordinator) record(kind string, kind2 TaskType, taskID, attempt int, workerID string, backup bool) {
+// record appends one task event and logs it. Callers must hold c.mu.
+func (c *Coordinator) record(kind string, phase TaskType, taskID, attempt int, workerID string, backup bool) {
 	c.events = append(c.events, TaskEvent{
 		Kind:     kind,
-		TaskType: kind2,
+		TaskType: phase,
 		TaskID:   taskID,
 		Attempt:  attempt,
 		WorkerID: workerID,
 		Backup:   backup,
 		At:       time.Now(),
 	})
+
+	c.cfg.Logger.Info("task",
+		"event", kind,
+		"phase", phase.String(),
+		"task_id", taskID,
+		"attempt", attempt,
+		"worker_id", workerID,
+		"backup", backup,
+		"elapsed_ms", time.Since(c.jobStart).Milliseconds(),
+	)
+}
+
+// phase logs a job level transition.
+func (c *Coordinator) phase(name string) {
+	c.cfg.Logger.Info("phase",
+		"transition", name,
+		"map_completed", c.mapTasksCompleted,
+		"map_total", c.nMap,
+		"reduce_completed", c.reduceTasksCompleted,
+		"reduce_total", c.nReduce,
+		"elapsed_ms", time.Since(c.jobStart).Milliseconds(),
+	)
 }
 
 // jobDone reports whether every task has finished. Callers must hold c.mu.
@@ -139,6 +162,7 @@ func (c *Coordinator) RequestTask(args *RequestTaskArgs, reply *RequestTaskReply
 	if c.reduceTasksCompleted < c.nReduce {
 		if c.reducePhaseStart.IsZero() {
 			c.reducePhaseStart = time.Now()
+			c.phase("reduce_phase_start")
 		}
 		if c.handOut(c.reduceTasks, ReduceTask, args.WorkerID, reply) {
 			return nil
@@ -322,6 +346,7 @@ func (c *Coordinator) CommitTask(args *CommitTaskArgs, reply *CommitTaskReply) e
 		c.mapTasksCompleted++
 		if c.mapTasksCompleted == c.nMap {
 			c.mapPhaseEnd = time.Now()
+			c.phase("map_phase_end")
 		}
 		return nil
 	}
@@ -329,6 +354,7 @@ func (c *Coordinator) CommitTask(args *CommitTaskArgs, reply *CommitTaskReply) e
 	c.reduceTasksCompleted++
 	if c.reduceTasksCompleted == c.nReduce {
 		c.jobEnd = time.Now()
+		c.phase("job_end")
 	}
 	return nil
 }
@@ -342,12 +368,12 @@ func (c *Coordinator) task(kind TaskType, id int) *TaskInfo {
 	case ReduceTask:
 		tasks = c.reduceTasks
 	default:
-		log.Printf("Unknown task type reported: %v", kind)
+		c.cfg.Logger.Warn("bad_report", "reason", "unknown task type", "task_type", int(kind))
 		return nil
 	}
 
 	if id < 0 || id >= len(tasks) {
-		log.Printf("Task id out of range reported: %v", id)
+		c.cfg.Logger.Warn("bad_report", "reason", "task id out of range", "task_id", id)
 		return nil
 	}
 	return &tasks[id]
@@ -372,6 +398,7 @@ func (c *Coordinator) server() {
 
 	mux := http.NewServeMux()
 	mux.Handle(rpc.DefaultRPCPath, server)
+	mux.HandleFunc("/status", c.handleStatus)
 
 	os.Remove(c.cfg.SocketPath)
 	l, e := net.Listen("unix", c.cfg.SocketPath)
@@ -381,12 +408,27 @@ func (c *Coordinator) server() {
 	c.listener = l
 
 	go http.Serve(l, mux)
+
+	// The status page is also served over TCP when an address is configured,
+	// so a browser or a curl from another machine can watch a job.
+	if c.cfg.StatusAddr != "" {
+		status, err := net.Listen("tcp", c.cfg.StatusAddr)
+		if err != nil {
+			log.Fatal("status listen error:", err)
+		}
+		c.statusListener = status
+		c.cfg.Logger.Info("status_endpoint", "addr", status.Addr().String())
+		go http.Serve(status, mux)
+	}
 }
 
 // Shutdown stops the RPC listener so an in-process caller can run another job.
 func (c *Coordinator) Shutdown() {
 	if c.listener != nil {
 		c.listener.Close()
+	}
+	if c.statusListener != nil {
+		c.statusListener.Close()
 	}
 	os.Remove(c.cfg.SocketPath)
 }
@@ -442,7 +484,6 @@ func (c *Coordinator) reap(tasks []TaskInfo, label string) {
 		// the whole task back rather than trusting output that may not exist.
 		if task.State == Committing {
 			if time.Since(task.CommitStart) > c.cfg.TaskTimeout {
-				log.Printf("%s task %d stalled while committing. Reassigning.", label, task.ID)
 				c.record(EventReaped, kindOf(label), task.ID, task.Committer, "", false)
 				task.State = Idle
 				task.Live = nil
@@ -457,7 +498,6 @@ func (c *Coordinator) reap(tasks []TaskInfo, label string) {
 		live := task.Live[:0]
 		for _, a := range task.Live {
 			if time.Since(a.Start) > c.cfg.TaskTimeout {
-				log.Printf("%s task %d attempt %d timed out. Reassigning.", label, task.ID, a.ID)
 				c.record(EventReaped, kindOf(label), task.ID, a.ID, a.WorkerID, a.Backup)
 				continue
 			}
@@ -475,7 +515,9 @@ func (c *Coordinator) reap(tasks []TaskInfo, label string) {
 // mr-main/mrcoordinator.go calls this function.
 // nReduce is the number of reduce tasks to use.
 func MakeCoordinator(files []string, nReduce int) *Coordinator {
-	return MakeCoordinatorWithConfig(files, DefaultConfig(nReduce))
+	cfg := DefaultConfig(nReduce)
+	cfg.Logger = StderrLogger()
+	return MakeCoordinatorWithConfig(files, cfg)
 }
 
 // MakeCoordinatorWithConfig creates a Coordinator with explicit settings.
@@ -506,7 +548,13 @@ func MakeCoordinatorWithConfig(files []string, cfg Config) *Coordinator {
 		c.reduceTasks[i] = TaskInfo{ID: i, State: Idle}
 	}
 
-	log.Printf("Coordinator initialized with %d map tasks and %d reduce tasks.", c.nMap, c.nReduce)
+	cfg.Logger.Info("job_start",
+		"map_tasks", c.nMap,
+		"reduce_tasks", c.nReduce,
+		"split_bytes", cfg.SplitBytes,
+		"task_timeout_ms", cfg.TaskTimeout.Milliseconds(),
+		"speculation", cfg.Speculation,
+	)
 
 	c.server()
 
