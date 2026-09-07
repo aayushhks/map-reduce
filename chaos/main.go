@@ -9,6 +9,8 @@ import (
 	"runtime"
 	"sort"
 	"time"
+
+	"cs651/trace"
 )
 
 // Report is the full fault matrix, written as JSON.
@@ -61,6 +63,7 @@ func main() {
 		only       = flag.String("only", "", "run just this scenario")
 		workerBin  = flag.String("worker", "", "path to the chaos worker binary")
 		workDir    = flag.String("workdir", "chaos-tmp", "directory for intermediate and output files")
+		traceOut   = flag.String("trace-out", "", "write a replayable trace of each scenario's first trial here")
 		out        = flag.String("out", "", "write the JSON report here instead of stdout")
 	)
 	flag.Parse()
@@ -133,6 +136,13 @@ func main() {
 				fail(fmt.Errorf("scenario %s trial %d: %w", sc.Name, i, err))
 			}
 			outcomes = append(outcomes, outcome)
+
+			if *traceOut != "" && i == 0 {
+				path := filepath.Join(*traceOut, sc.Name+".json")
+				if err := trace.Write(path, trace.Build(outcome.Trace, sc.Name+": "+sc.Description)); err != nil {
+					fail(err)
+				}
+			}
 		}
 
 		r := analyse(sc, outcomes, cleanHash)

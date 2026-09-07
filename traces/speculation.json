@@ -1,0 +1,522 @@
+{
+  "schema": "mapreduce-trace/v1",
+  "recorded_at": "2026-09-07T22:01:17Z",
+  "label": "invertedindex, 4 workers",
+  "job": {
+    "duration_ms": 1079.232,
+    "map_phase_end_ms": 1046.846,
+    "reduce_phase_start_ms": 1047.277,
+    "map_tasks": 8,
+    "reduce_tasks": 8,
+    "backups_launched": 1,
+    "backups_won": 1
+  },
+  "workers": [
+    "worker-0",
+    "worker-1",
+    "worker-2",
+    "worker-3"
+  ],
+  "tasks": [
+    {
+      "worker_id": "worker-3",
+      "phase": "map",
+      "task_id": 0,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 1.817,
+      "end_ms": 257.091,
+      "input_bytes": 2781080,
+      "output_bytes": 145137,
+      "records": 2982
+    },
+    {
+      "worker_id": "worker-1",
+      "phase": "map",
+      "task_id": 2,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 2.121,
+      "end_ms": 512.632,
+      "input_bytes": 8253300,
+      "output_bytes": 349438,
+      "records": 7625
+    },
+    {
+      "worker_id": "worker-2",
+      "phase": "map",
+      "task_id": 3,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 2.189,
+      "end_ms": 537.226,
+      "input_bytes": 9063360,
+      "output_bytes": 333639,
+      "records": 7119
+    },
+    {
+      "worker_id": "worker-3",
+      "phase": "map",
+      "task_id": 4,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 257.623,
+      "end_ms": 612.576,
+      "input_bytes": 8820660,
+      "output_bytes": 350812,
+      "records": 7262
+    },
+    {
+      "worker_id": "worker-1",
+      "phase": "map",
+      "task_id": 5,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 513.264,
+      "end_ms": 865.107,
+      "input_bytes": 10803480,
+      "output_bytes": 207134,
+      "records": 5134
+    },
+    {
+      "worker_id": "worker-2",
+      "phase": "map",
+      "task_id": 6,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 537.753,
+      "end_ms": 969.447,
+      "input_bytes": 11637260,
+      "output_bytes": 411309,
+      "records": 8070
+    },
+    {
+      "worker_id": "worker-3",
+      "phase": "map",
+      "task_id": 7,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 612.948,
+      "end_ms": 1046.389,
+      "input_bytes": 11885240,
+      "output_bytes": 332601,
+      "records": 6483
+    },
+    {
+      "worker_id": "worker-1",
+      "phase": "map",
+      "task_id": 1,
+      "attempt": 2,
+      "backup": true,
+      "start_ms": 865.749,
+      "end_ms": 975.929,
+      "input_bytes": 2777700,
+      "output_bytes": 144168,
+      "records": 3012
+    },
+    {
+      "worker_id": "worker-3",
+      "phase": "reduce",
+      "task_id": 0,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 1047.619,
+      "end_ms": 1056.216,
+      "input_bytes": 292378,
+      "output_bytes": 147214,
+      "records": 2445
+    },
+    {
+      "worker_id": "worker-2",
+      "phase": "reduce",
+      "task_id": 1,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 1049.378,
+      "end_ms": 1058.175,
+      "input_bytes": 286442,
+      "output_bytes": 144255,
+      "records": 2419
+    },
+    {
+      "worker_id": "worker-1",
+      "phase": "reduce",
+      "task_id": 2,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 1055.768,
+      "end_ms": 1065.629,
+      "input_bytes": 284670,
+      "output_bytes": 143731,
+      "records": 2440
+    },
+    {
+      "worker_id": "worker-3",
+      "phase": "reduce",
+      "task_id": 3,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 1056.521,
+      "end_ms": 1065.526,
+      "input_bytes": 278755,
+      "output_bytes": 140743,
+      "records": 2397
+    },
+    {
+      "worker_id": "worker-2",
+      "phase": "reduce",
+      "task_id": 4,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 1058.485,
+      "end_ms": 1067.06,
+      "input_bytes": 285457,
+      "output_bytes": 143655,
+      "records": 2393
+    },
+    {
+      "worker_id": "worker-3",
+      "phase": "reduce",
+      "task_id": 5,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 1065.962,
+      "end_ms": 1074.468,
+      "input_bytes": 280656,
+      "output_bytes": 142449,
+      "records": 2464
+    },
+    {
+      "worker_id": "worker-1",
+      "phase": "reduce",
+      "task_id": 6,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 1066.243,
+      "end_ms": 1074.584,
+      "input_bytes": 287103,
+      "output_bytes": 145135,
+      "records": 2479
+    },
+    {
+      "worker_id": "worker-2",
+      "phase": "reduce",
+      "task_id": 7,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 1067.455,
+      "end_ms": 1078.897,
+      "input_bytes": 278777,
+      "output_bytes": 140956,
+      "records": 2399
+    }
+  ],
+  "events": [
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 0,
+      "attempt": 1,
+      "worker_id": "worker-3",
+      "backup": false,
+      "at_ms": 1.633
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 1,
+      "attempt": 1,
+      "worker_id": "worker-0",
+      "backup": false,
+      "at_ms": 1.774
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 2,
+      "attempt": 1,
+      "worker_id": "worker-1",
+      "backup": false,
+      "at_ms": 1.83
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 3,
+      "attempt": 1,
+      "worker_id": "worker-2",
+      "backup": false,
+      "at_ms": 1.967
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 0,
+      "attempt": 1,
+      "worker_id": "worker-3",
+      "backup": false,
+      "at_ms": 257.37
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 4,
+      "attempt": 1,
+      "worker_id": "worker-3",
+      "backup": false,
+      "at_ms": 257.535
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 2,
+      "attempt": 1,
+      "worker_id": "worker-1",
+      "backup": false,
+      "at_ms": 512.845
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 5,
+      "attempt": 1,
+      "worker_id": "worker-1",
+      "backup": false,
+      "at_ms": 513.194
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 3,
+      "attempt": 1,
+      "worker_id": "worker-2",
+      "backup": false,
+      "at_ms": 537.429
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 6,
+      "attempt": 1,
+      "worker_id": "worker-2",
+      "backup": false,
+      "at_ms": 537.658
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 4,
+      "attempt": 1,
+      "worker_id": "worker-3",
+      "backup": false,
+      "at_ms": 612.758
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 7,
+      "attempt": 1,
+      "worker_id": "worker-3",
+      "backup": false,
+      "at_ms": 612.896
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 5,
+      "attempt": 1,
+      "worker_id": "worker-1",
+      "backup": false,
+      "at_ms": 865.411
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 1,
+      "attempt": 2,
+      "worker_id": "worker-1",
+      "backup": true,
+      "at_ms": 865.662
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 6,
+      "attempt": 1,
+      "worker_id": "worker-2",
+      "backup": false,
+      "at_ms": 969.982
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 1,
+      "attempt": 2,
+      "worker_id": "worker-1",
+      "backup": true,
+      "at_ms": 976.158
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 7,
+      "attempt": 1,
+      "worker_id": "worker-3",
+      "backup": false,
+      "at_ms": 1046.818
+    },
+    {
+      "kind": "assigned",
+      "phase": "reduce",
+      "task_id": 0,
+      "attempt": 1,
+      "worker_id": "worker-3",
+      "backup": false,
+      "at_ms": 1047.302
+    },
+    {
+      "kind": "assigned",
+      "phase": "reduce",
+      "task_id": 1,
+      "attempt": 1,
+      "worker_id": "worker-2",
+      "backup": false,
+      "at_ms": 1049.202
+    },
+    {
+      "kind": "assigned",
+      "phase": "reduce",
+      "task_id": 2,
+      "attempt": 1,
+      "worker_id": "worker-1",
+      "backup": false,
+      "at_ms": 1055.676
+    },
+    {
+      "kind": "committed",
+      "phase": "reduce",
+      "task_id": 0,
+      "attempt": 1,
+      "worker_id": "worker-3",
+      "backup": false,
+      "at_ms": 1056.337
+    },
+    {
+      "kind": "assigned",
+      "phase": "reduce",
+      "task_id": 3,
+      "attempt": 1,
+      "worker_id": "worker-3",
+      "backup": false,
+      "at_ms": 1056.468
+    },
+    {
+      "kind": "committed",
+      "phase": "reduce",
+      "task_id": 1,
+      "attempt": 1,
+      "worker_id": "worker-2",
+      "backup": false,
+      "at_ms": 1058.296
+    },
+    {
+      "kind": "assigned",
+      "phase": "reduce",
+      "task_id": 4,
+      "attempt": 1,
+      "worker_id": "worker-2",
+      "backup": false,
+      "at_ms": 1058.428
+    },
+    {
+      "kind": "committed",
+      "phase": "reduce",
+      "task_id": 3,
+      "attempt": 1,
+      "worker_id": "worker-3",
+      "backup": false,
+      "at_ms": 1065.703
+    },
+    {
+      "kind": "committed",
+      "phase": "reduce",
+      "task_id": 2,
+      "attempt": 1,
+      "worker_id": "worker-1",
+      "backup": false,
+      "at_ms": 1065.781
+    },
+    {
+      "kind": "assigned",
+      "phase": "reduce",
+      "task_id": 5,
+      "attempt": 1,
+      "worker_id": "worker-3",
+      "backup": false,
+      "at_ms": 1065.906
+    },
+    {
+      "kind": "assigned",
+      "phase": "reduce",
+      "task_id": 6,
+      "attempt": 1,
+      "worker_id": "worker-1",
+      "backup": false,
+      "at_ms": 1065.996
+    },
+    {
+      "kind": "committed",
+      "phase": "reduce",
+      "task_id": 4,
+      "attempt": 1,
+      "worker_id": "worker-2",
+      "backup": false,
+      "at_ms": 1067.219
+    },
+    {
+      "kind": "assigned",
+      "phase": "reduce",
+      "task_id": 7,
+      "attempt": 1,
+      "worker_id": "worker-2",
+      "backup": false,
+      "at_ms": 1067.389
+    },
+    {
+      "kind": "committed",
+      "phase": "reduce",
+      "task_id": 5,
+      "attempt": 1,
+      "worker_id": "worker-3",
+      "backup": false,
+      "at_ms": 1074.657
+    },
+    {
+      "kind": "committed",
+      "phase": "reduce",
+      "task_id": 6,
+      "attempt": 1,
+      "worker_id": "worker-1",
+      "backup": false,
+      "at_ms": 1074.791
+    },
+    {
+      "kind": "committed",
+      "phase": "reduce",
+      "task_id": 7,
+      "attempt": 1,
+      "worker_id": "worker-2",
+      "backup": false,
+      "at_ms": 1079.216
+    },
+    {
+      "kind": "refused",
+      "phase": "map",
+      "task_id": 1,
+      "attempt": 1,
+      "worker_id": "worker-0",
+      "backup": false,
+      "at_ms": 2419.867
+    }
+  ]
+}

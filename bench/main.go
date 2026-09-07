@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"cs651/trace"
 	"cs651/workload"
 )
 
@@ -31,6 +32,7 @@ func main() {
 		slowN      = flag.Int("slow-workers", 0, "how many workers to make artificially slow")
 		slowFactor = flag.Float64("slow-factor", 1, "how many times slower those workers run")
 		sweep      = flag.String("sweep", "", "comma separated worker counts to sweep, e.g. 1,2,4,8,16")
+		traceOut   = flag.String("trace-out", "", "write a replayable trace of the median trial here")
 		out        = flag.String("out", "", "write the JSON report to this path instead of stdout")
 	)
 	flag.Parse()
@@ -137,6 +139,13 @@ func main() {
 
 	if err := writeReport(report, *out); err != nil {
 		fail(err)
+	}
+
+	if *traceOut != "" {
+		doc := trace.Build(results[median].Trace, fmt.Sprintf("%s, %d workers", *app, *workers))
+		if err := trace.Write(*traceOut, doc); err != nil {
+			fail(err)
+		}
 	}
 
 	if err := os.RemoveAll(*workDir); err != nil {

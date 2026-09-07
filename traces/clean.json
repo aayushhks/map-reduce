@@ -1,0 +1,1464 @@
+{
+  "schema": "mapreduce-trace/v1",
+  "recorded_at": "2026-09-07T22:00:19Z",
+  "label": "clean: no faults, the reference run",
+  "job": {
+    "duration_ms": 509.23,
+    "map_phase_end_ms": 367.08,
+    "reduce_phase_start_ms": 367.476,
+    "map_tasks": 40,
+    "reduce_tasks": 8,
+    "backups_launched": 0,
+    "backups_won": 0
+  },
+  "workers": [
+    "worker-0-0",
+    "worker-1-1",
+    "worker-2-2",
+    "worker-3-3"
+  ],
+  "tasks": [
+    {
+      "worker_id": "worker-0-0",
+      "phase": "map",
+      "task_id": 0,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 3.825,
+      "end_ms": 31.131,
+      "input_bytes": 138885,
+      "output_bytes": 159228,
+      "records": 3012
+    },
+    {
+      "worker_id": "worker-1-1",
+      "phase": "map",
+      "task_id": 2,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 4.86,
+      "end_ms": 34.41,
+      "input_bytes": 138885,
+      "output_bytes": 159228,
+      "records": 3012
+    },
+    {
+      "worker_id": "worker-3-3",
+      "phase": "map",
+      "task_id": 1,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 4.875,
+      "end_ms": 36.085,
+      "input_bytes": 138885,
+      "output_bytes": 159228,
+      "records": 3012
+    },
+    {
+      "worker_id": "worker-2-2",
+      "phase": "map",
+      "task_id": 3,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 5.157,
+      "end_ms": 34.54,
+      "input_bytes": 138885,
+      "output_bytes": 159228,
+      "records": 3012
+    },
+    {
+      "worker_id": "worker-0-0",
+      "phase": "map",
+      "task_id": 4,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 32.312,
+      "end_ms": 44.63,
+      "input_bytes": 138885,
+      "output_bytes": 159228,
+      "records": 3012
+    },
+    {
+      "worker_id": "worker-1-1",
+      "phase": "map",
+      "task_id": 5,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 35.72,
+      "end_ms": 66.551,
+      "input_bytes": 453168,
+      "output_bytes": 369234,
+      "records": 7119
+    },
+    {
+      "worker_id": "worker-2-2",
+      "phase": "map",
+      "task_id": 7,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 37.932,
+      "end_ms": 64.759,
+      "input_bytes": 453168,
+      "output_bytes": 369234,
+      "records": 7119
+    },
+    {
+      "worker_id": "worker-3-3",
+      "phase": "map",
+      "task_id": 6,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 39.848,
+      "end_ms": 80.439,
+      "input_bytes": 453168,
+      "output_bytes": 369234,
+      "records": 7119
+    },
+    {
+      "worker_id": "worker-0-0",
+      "phase": "map",
+      "task_id": 8,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 45.865,
+      "end_ms": 78.22,
+      "input_bytes": 453168,
+      "output_bytes": 369234,
+      "records": 7119
+    },
+    {
+      "worker_id": "worker-2-2",
+      "phase": "map",
+      "task_id": 9,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 65.682,
+      "end_ms": 112.518,
+      "input_bytes": 453168,
+      "output_bytes": 369234,
+      "records": 7119
+    },
+    {
+      "worker_id": "worker-1-1",
+      "phase": "map",
+      "task_id": 10,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 67.357,
+      "end_ms": 101.299,
+      "input_bytes": 441033,
+      "output_bytes": 387122,
+      "records": 7262
+    },
+    {
+      "worker_id": "worker-0-0",
+      "phase": "map",
+      "task_id": 11,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 79.207,
+      "end_ms": 114.906,
+      "input_bytes": 441033,
+      "output_bytes": 387122,
+      "records": 7262
+    },
+    {
+      "worker_id": "worker-3-3",
+      "phase": "map",
+      "task_id": 12,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 81.004,
+      "end_ms": 134.431,
+      "input_bytes": 441033,
+      "output_bytes": 387122,
+      "records": 7262
+    },
+    {
+      "worker_id": "worker-1-1",
+      "phase": "map",
+      "task_id": 13,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 102.204,
+      "end_ms": 134.36,
+      "input_bytes": 441033,
+      "output_bytes": 387122,
+      "records": 7262
+    },
+    {
+      "worker_id": "worker-2-2",
+      "phase": "map",
+      "task_id": 14,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 113.314,
+      "end_ms": 143.872,
+      "input_bytes": 441033,
+      "output_bytes": 387122,
+      "records": 7262
+    },
+    {
+      "worker_id": "worker-0-0",
+      "phase": "map",
+      "task_id": 15,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 118.45,
+      "end_ms": 175.826,
+      "input_bytes": 540174,
+      "output_bytes": 232804,
+      "records": 5134
+    },
+    {
+      "worker_id": "worker-3-3",
+      "phase": "map",
+      "task_id": 16,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 135.437,
+      "end_ms": 183.206,
+      "input_bytes": 540174,
+      "output_bytes": 232804,
+      "records": 5134
+    },
+    {
+      "worker_id": "worker-1-1",
+      "phase": "map",
+      "task_id": 17,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 137.352,
+      "end_ms": 169.694,
+      "input_bytes": 540174,
+      "output_bytes": 232804,
+      "records": 5134
+    },
+    {
+      "worker_id": "worker-2-2",
+      "phase": "map",
+      "task_id": 18,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 144.694,
+      "end_ms": 177.183,
+      "input_bytes": 540174,
+      "output_bytes": 232804,
+      "records": 5134
+    },
+    {
+      "worker_id": "worker-1-1",
+      "phase": "map",
+      "task_id": 19,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 172.068,
+      "end_ms": 204.125,
+      "input_bytes": 540174,
+      "output_bytes": 232804,
+      "records": 5134
+    },
+    {
+      "worker_id": "worker-0-0",
+      "phase": "map",
+      "task_id": 20,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 177.135,
+      "end_ms": 230.198,
+      "input_bytes": 594262,
+      "output_bytes": 365016,
+      "records": 6483
+    },
+    {
+      "worker_id": "worker-2-2",
+      "phase": "map",
+      "task_id": 21,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 178.313,
+      "end_ms": 224.299,
+      "input_bytes": 594262,
+      "output_bytes": 365016,
+      "records": 6483
+    },
+    {
+      "worker_id": "worker-3-3",
+      "phase": "map",
+      "task_id": 22,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 185.798,
+      "end_ms": 222.144,
+      "input_bytes": 594262,
+      "output_bytes": 365016,
+      "records": 6483
+    },
+    {
+      "worker_id": "worker-1-1",
+      "phase": "map",
+      "task_id": 23,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 204.9,
+      "end_ms": 255.548,
+      "input_bytes": 594262,
+      "output_bytes": 365016,
+      "records": 6483
+    },
+    {
+      "worker_id": "worker-3-3",
+      "phase": "map",
+      "task_id": 24,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 223.204,
+      "end_ms": 263.097,
+      "input_bytes": 594262,
+      "output_bytes": 365016,
+      "records": 6483
+    },
+    {
+      "worker_id": "worker-2-2",
+      "phase": "map",
+      "task_id": 25,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 225.402,
+      "end_ms": 233.272,
+      "input_bytes": 139054,
+      "output_bytes": 160047,
+      "records": 2982
+    },
+    {
+      "worker_id": "worker-0-0",
+      "phase": "map",
+      "task_id": 26,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 231.294,
+      "end_ms": 252.153,
+      "input_bytes": 139054,
+      "output_bytes": 160047,
+      "records": 2982
+    },
+    {
+      "worker_id": "worker-2-2",
+      "phase": "map",
+      "task_id": 27,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 234.011,
+      "end_ms": 249.163,
+      "input_bytes": 139054,
+      "output_bytes": 160047,
+      "records": 2982
+    },
+    {
+      "worker_id": "worker-2-2",
+      "phase": "map",
+      "task_id": 28,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 250.199,
+      "end_ms": 264.107,
+      "input_bytes": 139054,
+      "output_bytes": 160047,
+      "records": 2982
+    },
+    {
+      "worker_id": "worker-0-0",
+      "phase": "map",
+      "task_id": 29,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 253.212,
+      "end_ms": 266.067,
+      "input_bytes": 139054,
+      "output_bytes": 160047,
+      "records": 2982
+    },
+    {
+      "worker_id": "worker-1-1",
+      "phase": "map",
+      "task_id": 30,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 256.422,
+      "end_ms": 293.006,
+      "input_bytes": 581863,
+      "output_bytes": 451659,
+      "records": 8070
+    },
+    {
+      "worker_id": "worker-3-3",
+      "phase": "map",
+      "task_id": 31,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 264.041,
+      "end_ms": 304.092,
+      "input_bytes": 581863,
+      "output_bytes": 451659,
+      "records": 8070
+    },
+    {
+      "worker_id": "worker-2-2",
+      "phase": "map",
+      "task_id": 32,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 265.405,
+      "end_ms": 303.715,
+      "input_bytes": 581863,
+      "output_bytes": 451659,
+      "records": 8070
+    },
+    {
+      "worker_id": "worker-0-0",
+      "phase": "map",
+      "task_id": 33,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 269.095,
+      "end_ms": 305.342,
+      "input_bytes": 581863,
+      "output_bytes": 451659,
+      "records": 8070
+    },
+    {
+      "worker_id": "worker-1-1",
+      "phase": "map",
+      "task_id": 34,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 293.914,
+      "end_ms": 325.669,
+      "input_bytes": 581863,
+      "output_bytes": 451659,
+      "records": 8070
+    },
+    {
+      "worker_id": "worker-2-2",
+      "phase": "map",
+      "task_id": 35,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 304.978,
+      "end_ms": 337.891,
+      "input_bytes": 412665,
+      "output_bytes": 387563,
+      "records": 7625
+    },
+    {
+      "worker_id": "worker-3-3",
+      "phase": "map",
+      "task_id": 36,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 305.189,
+      "end_ms": 338.252,
+      "input_bytes": 412665,
+      "output_bytes": 387563,
+      "records": 7625
+    },
+    {
+      "worker_id": "worker-0-0",
+      "phase": "map",
+      "task_id": 37,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 306.984,
+      "end_ms": 343.733,
+      "input_bytes": 412665,
+      "output_bytes": 387563,
+      "records": 7625
+    },
+    {
+      "worker_id": "worker-1-1",
+      "phase": "map",
+      "task_id": 38,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 326.432,
+      "end_ms": 355.295,
+      "input_bytes": 412665,
+      "output_bytes": 387563,
+      "records": 7625
+    },
+    {
+      "worker_id": "worker-3-3",
+      "phase": "map",
+      "task_id": 39,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 339.793,
+      "end_ms": 366.722,
+      "input_bytes": 412665,
+      "output_bytes": 387563,
+      "records": 7625
+    },
+    {
+      "worker_id": "worker-3-3",
+      "phase": "reduce",
+      "task_id": 0,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 367.653,
+      "end_ms": 452.359,
+      "input_bytes": 1615265,
+      "output_bytes": 790374,
+      "records": 2445
+    },
+    {
+      "worker_id": "worker-2-2",
+      "phase": "reduce",
+      "task_id": 1,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 374.364,
+      "end_ms": 445.288,
+      "input_bytes": 1582285,
+      "output_bytes": 772794,
+      "records": 2419
+    },
+    {
+      "worker_id": "worker-0-0",
+      "phase": "reduce",
+      "task_id": 2,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 377.426,
+      "end_ms": 448.441,
+      "input_bytes": 1572275,
+      "output_bytes": 768015,
+      "records": 2440
+    },
+    {
+      "worker_id": "worker-1-1",
+      "phase": "reduce",
+      "task_id": 3,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 378.039,
+      "end_ms": 436.156,
+      "input_bytes": 1539925,
+      "output_bytes": 752356,
+      "records": 2397
+    },
+    {
+      "worker_id": "worker-1-1",
+      "phase": "reduce",
+      "task_id": 4,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 437.055,
+      "end_ms": 497.654,
+      "input_bytes": 1577060,
+      "output_bytes": 771231,
+      "records": 2393
+    },
+    {
+      "worker_id": "worker-2-2",
+      "phase": "reduce",
+      "task_id": 5,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 446.167,
+      "end_ms": 503.849,
+      "input_bytes": 1550630,
+      "output_bytes": 759970,
+      "records": 2464
+    },
+    {
+      "worker_id": "worker-0-0",
+      "phase": "reduce",
+      "task_id": 6,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 449.364,
+      "end_ms": 507.991,
+      "input_bytes": 1585715,
+      "output_bytes": 774713,
+      "records": 2479
+    },
+    {
+      "worker_id": "worker-3-3",
+      "phase": "reduce",
+      "task_id": 7,
+      "attempt": 1,
+      "backup": false,
+      "start_ms": 452.976,
+      "end_ms": 508.873,
+      "input_bytes": 1540210,
+      "output_bytes": 754761,
+      "records": 2399
+    }
+  ],
+  "events": [
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 0,
+      "attempt": 1,
+      "worker_id": "worker-0-0",
+      "backup": false,
+      "at_ms": 3.604
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 1,
+      "attempt": 1,
+      "worker_id": "worker-3-3",
+      "backup": false,
+      "at_ms": 4.547
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 2,
+      "attempt": 1,
+      "worker_id": "worker-1-1",
+      "backup": false,
+      "at_ms": 4.695
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 3,
+      "attempt": 1,
+      "worker_id": "worker-2-2",
+      "backup": false,
+      "at_ms": 4.927
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 0,
+      "attempt": 1,
+      "worker_id": "worker-0-0",
+      "backup": false,
+      "at_ms": 31.645
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 4,
+      "attempt": 1,
+      "worker_id": "worker-0-0",
+      "backup": false,
+      "at_ms": 32.132
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 2,
+      "attempt": 1,
+      "worker_id": "worker-1-1",
+      "backup": false,
+      "at_ms": 35.003
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 5,
+      "attempt": 1,
+      "worker_id": "worker-1-1",
+      "backup": false,
+      "at_ms": 35.369
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 1,
+      "attempt": 1,
+      "worker_id": "worker-3-3",
+      "backup": false,
+      "at_ms": 36.833
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 3,
+      "attempt": 1,
+      "worker_id": "worker-2-2",
+      "backup": false,
+      "at_ms": 37.298
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 6,
+      "attempt": 1,
+      "worker_id": "worker-3-3",
+      "backup": false,
+      "at_ms": 37.411
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 7,
+      "attempt": 1,
+      "worker_id": "worker-2-2",
+      "backup": false,
+      "at_ms": 37.775
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 4,
+      "attempt": 1,
+      "worker_id": "worker-0-0",
+      "backup": false,
+      "at_ms": 45.239
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 8,
+      "attempt": 1,
+      "worker_id": "worker-0-0",
+      "backup": false,
+      "at_ms": 45.698
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 7,
+      "attempt": 1,
+      "worker_id": "worker-2-2",
+      "backup": false,
+      "at_ms": 65.049
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 9,
+      "attempt": 1,
+      "worker_id": "worker-2-2",
+      "backup": false,
+      "at_ms": 65.524
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 5,
+      "attempt": 1,
+      "worker_id": "worker-1-1",
+      "backup": false,
+      "at_ms": 66.836
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 10,
+      "attempt": 1,
+      "worker_id": "worker-1-1",
+      "backup": false,
+      "at_ms": 67.191
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 8,
+      "attempt": 1,
+      "worker_id": "worker-0-0",
+      "backup": false,
+      "at_ms": 78.538
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 11,
+      "attempt": 1,
+      "worker_id": "worker-0-0",
+      "backup": false,
+      "at_ms": 79.015
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 6,
+      "attempt": 1,
+      "worker_id": "worker-3-3",
+      "backup": false,
+      "at_ms": 80.677
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 12,
+      "attempt": 1,
+      "worker_id": "worker-3-3",
+      "backup": false,
+      "at_ms": 80.926
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 10,
+      "attempt": 1,
+      "worker_id": "worker-1-1",
+      "backup": false,
+      "at_ms": 101.64
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 13,
+      "attempt": 1,
+      "worker_id": "worker-1-1",
+      "backup": false,
+      "at_ms": 102.041
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 9,
+      "attempt": 1,
+      "worker_id": "worker-2-2",
+      "backup": false,
+      "at_ms": 112.772
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 14,
+      "attempt": 1,
+      "worker_id": "worker-2-2",
+      "backup": false,
+      "at_ms": 113.107
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 11,
+      "attempt": 1,
+      "worker_id": "worker-0-0",
+      "backup": false,
+      "at_ms": 117.462
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 15,
+      "attempt": 1,
+      "worker_id": "worker-0-0",
+      "backup": false,
+      "at_ms": 118.18
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 12,
+      "attempt": 1,
+      "worker_id": "worker-3-3",
+      "backup": false,
+      "at_ms": 134.724
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 13,
+      "attempt": 1,
+      "worker_id": "worker-1-1",
+      "backup": false,
+      "at_ms": 134.867
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 16,
+      "attempt": 1,
+      "worker_id": "worker-3-3",
+      "backup": false,
+      "at_ms": 135.303
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 17,
+      "attempt": 1,
+      "worker_id": "worker-1-1",
+      "backup": false,
+      "at_ms": 137.173
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 14,
+      "attempt": 1,
+      "worker_id": "worker-2-2",
+      "backup": false,
+      "at_ms": 144.22
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 18,
+      "attempt": 1,
+      "worker_id": "worker-2-2",
+      "backup": false,
+      "at_ms": 144.552
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 17,
+      "attempt": 1,
+      "worker_id": "worker-1-1",
+      "backup": false,
+      "at_ms": 170.024
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 19,
+      "attempt": 1,
+      "worker_id": "worker-1-1",
+      "backup": false,
+      "at_ms": 171.936
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 15,
+      "attempt": 1,
+      "worker_id": "worker-0-0",
+      "backup": false,
+      "at_ms": 176.258
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 20,
+      "attempt": 1,
+      "worker_id": "worker-0-0",
+      "backup": false,
+      "at_ms": 176.95
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 18,
+      "attempt": 1,
+      "worker_id": "worker-2-2",
+      "backup": false,
+      "at_ms": 177.512
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 21,
+      "attempt": 1,
+      "worker_id": "worker-2-2",
+      "backup": false,
+      "at_ms": 178.144
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 16,
+      "attempt": 1,
+      "worker_id": "worker-3-3",
+      "backup": false,
+      "at_ms": 183.45
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 22,
+      "attempt": 1,
+      "worker_id": "worker-3-3",
+      "backup": false,
+      "at_ms": 183.864
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 19,
+      "attempt": 1,
+      "worker_id": "worker-1-1",
+      "backup": false,
+      "at_ms": 204.367
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 23,
+      "attempt": 1,
+      "worker_id": "worker-1-1",
+      "backup": false,
+      "at_ms": 204.747
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 22,
+      "attempt": 1,
+      "worker_id": "worker-3-3",
+      "backup": false,
+      "at_ms": 222.455
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 24,
+      "attempt": 1,
+      "worker_id": "worker-3-3",
+      "backup": false,
+      "at_ms": 223.022
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 21,
+      "attempt": 1,
+      "worker_id": "worker-2-2",
+      "backup": false,
+      "at_ms": 224.689
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 25,
+      "attempt": 1,
+      "worker_id": "worker-2-2",
+      "backup": false,
+      "at_ms": 225.154
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 20,
+      "attempt": 1,
+      "worker_id": "worker-0-0",
+      "backup": false,
+      "at_ms": 230.787
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 26,
+      "attempt": 1,
+      "worker_id": "worker-0-0",
+      "backup": false,
+      "at_ms": 231.156
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 25,
+      "attempt": 1,
+      "worker_id": "worker-2-2",
+      "backup": false,
+      "at_ms": 233.503
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 27,
+      "attempt": 1,
+      "worker_id": "worker-2-2",
+      "backup": false,
+      "at_ms": 233.859
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 27,
+      "attempt": 1,
+      "worker_id": "worker-2-2",
+      "backup": false,
+      "at_ms": 249.491
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 28,
+      "attempt": 1,
+      "worker_id": "worker-2-2",
+      "backup": false,
+      "at_ms": 249.982
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 26,
+      "attempt": 1,
+      "worker_id": "worker-0-0",
+      "backup": false,
+      "at_ms": 252.51
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 29,
+      "attempt": 1,
+      "worker_id": "worker-0-0",
+      "backup": false,
+      "at_ms": 253.029
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 23,
+      "attempt": 1,
+      "worker_id": "worker-1-1",
+      "backup": false,
+      "at_ms": 255.809
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 30,
+      "attempt": 1,
+      "worker_id": "worker-1-1",
+      "backup": false,
+      "at_ms": 256.276
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 24,
+      "attempt": 1,
+      "worker_id": "worker-3-3",
+      "backup": false,
+      "at_ms": 263.356
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 31,
+      "attempt": 1,
+      "worker_id": "worker-3-3",
+      "backup": false,
+      "at_ms": 263.861
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 28,
+      "attempt": 1,
+      "worker_id": "worker-2-2",
+      "backup": false,
+      "at_ms": 264.584
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 32,
+      "attempt": 1,
+      "worker_id": "worker-2-2",
+      "backup": false,
+      "at_ms": 265.228
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 29,
+      "attempt": 1,
+      "worker_id": "worker-0-0",
+      "backup": false,
+      "at_ms": 266.675
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 33,
+      "attempt": 1,
+      "worker_id": "worker-0-0",
+      "backup": false,
+      "at_ms": 268.936
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 30,
+      "attempt": 1,
+      "worker_id": "worker-1-1",
+      "backup": false,
+      "at_ms": 293.318
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 34,
+      "attempt": 1,
+      "worker_id": "worker-1-1",
+      "backup": false,
+      "at_ms": 293.745
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 32,
+      "attempt": 1,
+      "worker_id": "worker-2-2",
+      "backup": false,
+      "at_ms": 304.148
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 31,
+      "attempt": 1,
+      "worker_id": "worker-3-3",
+      "backup": false,
+      "at_ms": 304.5
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 35,
+      "attempt": 1,
+      "worker_id": "worker-2-2",
+      "backup": false,
+      "at_ms": 304.769
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 36,
+      "attempt": 1,
+      "worker_id": "worker-3-3",
+      "backup": false,
+      "at_ms": 305.069
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 33,
+      "attempt": 1,
+      "worker_id": "worker-0-0",
+      "backup": false,
+      "at_ms": 306.377
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 37,
+      "attempt": 1,
+      "worker_id": "worker-0-0",
+      "backup": false,
+      "at_ms": 306.865
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 34,
+      "attempt": 1,
+      "worker_id": "worker-1-1",
+      "backup": false,
+      "at_ms": 325.925
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 38,
+      "attempt": 1,
+      "worker_id": "worker-1-1",
+      "backup": false,
+      "at_ms": 326.224
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 36,
+      "attempt": 1,
+      "worker_id": "worker-3-3",
+      "backup": false,
+      "at_ms": 339.307
+    },
+    {
+      "kind": "assigned",
+      "phase": "map",
+      "task_id": 39,
+      "attempt": 1,
+      "worker_id": "worker-3-3",
+      "backup": false,
+      "at_ms": 339.674
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 35,
+      "attempt": 1,
+      "worker_id": "worker-2-2",
+      "backup": false,
+      "at_ms": 339.771
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 37,
+      "attempt": 1,
+      "worker_id": "worker-0-0",
+      "backup": false,
+      "at_ms": 344.208
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 38,
+      "attempt": 1,
+      "worker_id": "worker-1-1",
+      "backup": false,
+      "at_ms": 355.678
+    },
+    {
+      "kind": "committed",
+      "phase": "map",
+      "task_id": 39,
+      "attempt": 1,
+      "worker_id": "worker-3-3",
+      "backup": false,
+      "at_ms": 367.064
+    },
+    {
+      "kind": "assigned",
+      "phase": "reduce",
+      "task_id": 0,
+      "attempt": 1,
+      "worker_id": "worker-3-3",
+      "backup": false,
+      "at_ms": 367.493
+    },
+    {
+      "kind": "assigned",
+      "phase": "reduce",
+      "task_id": 1,
+      "attempt": 1,
+      "worker_id": "worker-2-2",
+      "backup": false,
+      "at_ms": 374.187
+    },
+    {
+      "kind": "assigned",
+      "phase": "reduce",
+      "task_id": 2,
+      "attempt": 1,
+      "worker_id": "worker-0-0",
+      "backup": false,
+      "at_ms": 377.169
+    },
+    {
+      "kind": "assigned",
+      "phase": "reduce",
+      "task_id": 3,
+      "attempt": 1,
+      "worker_id": "worker-1-1",
+      "backup": false,
+      "at_ms": 377.813
+    },
+    {
+      "kind": "committed",
+      "phase": "reduce",
+      "task_id": 3,
+      "attempt": 1,
+      "worker_id": "worker-1-1",
+      "backup": false,
+      "at_ms": 436.471
+    },
+    {
+      "kind": "assigned",
+      "phase": "reduce",
+      "task_id": 4,
+      "attempt": 1,
+      "worker_id": "worker-1-1",
+      "backup": false,
+      "at_ms": 436.89
+    },
+    {
+      "kind": "committed",
+      "phase": "reduce",
+      "task_id": 1,
+      "attempt": 1,
+      "worker_id": "worker-2-2",
+      "backup": false,
+      "at_ms": 445.614
+    },
+    {
+      "kind": "assigned",
+      "phase": "reduce",
+      "task_id": 5,
+      "attempt": 1,
+      "worker_id": "worker-2-2",
+      "backup": false,
+      "at_ms": 446.018
+    },
+    {
+      "kind": "committed",
+      "phase": "reduce",
+      "task_id": 2,
+      "attempt": 1,
+      "worker_id": "worker-0-0",
+      "backup": false,
+      "at_ms": 448.802
+    },
+    {
+      "kind": "assigned",
+      "phase": "reduce",
+      "task_id": 6,
+      "attempt": 1,
+      "worker_id": "worker-0-0",
+      "backup": false,
+      "at_ms": 449.236
+    },
+    {
+      "kind": "committed",
+      "phase": "reduce",
+      "task_id": 0,
+      "attempt": 1,
+      "worker_id": "worker-3-3",
+      "backup": false,
+      "at_ms": 452.549
+    },
+    {
+      "kind": "assigned",
+      "phase": "reduce",
+      "task_id": 7,
+      "attempt": 1,
+      "worker_id": "worker-3-3",
+      "backup": false,
+      "at_ms": 452.847
+    },
+    {
+      "kind": "committed",
+      "phase": "reduce",
+      "task_id": 4,
+      "attempt": 1,
+      "worker_id": "worker-1-1",
+      "backup": false,
+      "at_ms": 498.063
+    },
+    {
+      "kind": "committed",
+      "phase": "reduce",
+      "task_id": 5,
+      "attempt": 1,
+      "worker_id": "worker-2-2",
+      "backup": false,
+      "at_ms": 504.193
+    },
+    {
+      "kind": "committed",
+      "phase": "reduce",
+      "task_id": 6,
+      "attempt": 1,
+      "worker_id": "worker-0-0",
+      "backup": false,
+      "at_ms": 508.484
+    },
+    {
+      "kind": "committed",
+      "phase": "reduce",
+      "task_id": 7,
+      "attempt": 1,
+      "worker_id": "worker-3-3",
+      "backup": false,
+      "at_ms": 509.218
+    }
+  ]
+}
