@@ -1,0 +1,47 @@
+{
+  "schema": "mapreduce-chaos/v1",
+  "generated_at": "2026-09-07T20:48:10Z",
+  "environment": {
+    "goos": "linux",
+    "goarch": "amd64",
+    "go_version": "go1.24.7",
+    "num_cpu": 4,
+    "placement": "single machine, in process coordinator with worker processes over unix socket rpc"
+  },
+  "config": {
+    "dataset": "gutenberg-8",
+    "input_glob": "/tmp/claude-0/-home-user-map-reduce/fca9a27d-5d91-52dd-9572-26fc60c06a11/scratchpad/corpus5/*.txt",
+    "workload": "invertedindex",
+    "input_files": 40,
+    "input_bytes": 16505520,
+    "map_tasks": 40,
+    "n_reduce": 8,
+    "workers": 4,
+    "task_timeout_ms": 250,
+    "reap_interval_ms": 100,
+    "trials_per_scenario": 3,
+    "seed": 1
+  },
+  "results": [
+    {
+      "scenario": "kill-1-map",
+      "description": "one worker killed during the map phase, not replaced",
+      "trials": 3,
+      "completed": true,
+      "output_hash": "0024cf930e489ff141c0c7c8f44728f761d525ef1d7ae5d6b81ccaac636afe59",
+      "output_keys": 19436,
+      "output_matches_clean_run": true,
+      "wall_ms": 614.543,
+      "workers_killed": 3,
+      "recovery_min_ms": 248.576,
+      "recovery_median_ms": 300.317,
+      "recovery_max_ms": 353.679,
+      "tasks_reassigned_after_failure": 3,
+      "tasks_total": 48,
+      "tasks_committed_before_failure": 46,
+      "work_preserved_share": 0.354,
+      "redundant_attempts": 3,
+      "work_lost_ms": 301.263
+    }
+  ]
+}
