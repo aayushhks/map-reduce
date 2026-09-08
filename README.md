@@ -3,7 +3,7 @@
 A coordinator/worker MapReduce, instrumented until every claim about it is a
 number with a stated configuration.
 
-**[Report page with the plots and a replayable job trace](https://claude.ai/code/artifact/d6ddba67-39d1-447d-b750-bd353dfbdd0d)**
+**[map-reduce-orcin.vercel.app](https://map-reduce-orcin.vercel.app/)** — the plots, the fault matrix, and a replayable trace of a job losing a worker.
 
 Every figure below is rendered from JSON committed under `bench/results/`.
 Nothing here is projected, extrapolated or rounded in my favour, and the

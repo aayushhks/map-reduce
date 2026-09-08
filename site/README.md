@@ -8,7 +8,8 @@ Rebuild the embedded data after new measurement runs:
 
     python3 site/build.py
 
-Deploy anywhere that serves static files.
+Deployed at https://map-reduce-orcin.vercel.app/ — it is plain static files, so
+any host works.
 
     vercel deploy --prod site
     aws s3 sync site s3://BUCKET --delete && aws cloudfront create-invalidation --distribution-id ID --paths '/*'
