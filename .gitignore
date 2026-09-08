@@ -10,3 +10,5 @@ bench-tmp/
 mr-tmp/
 mr-out-*
 mr-[0-9]*-[0-9]*
+.idea/
+.idea/
