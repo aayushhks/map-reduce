@@ -1,0 +1,65 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+
+      - name: gofmt
+        run: |
+          unformatted=$(gofmt -l bench chaos mr trace verify workload)
+          if [ -n "$unformatted" ]; then
+            echo "these files are not gofmt clean:"
+            echo "$unformatted"
+            gofmt -d bench chaos mr trace verify workload
+            exit 1
+          fi
+
+      - name: vet
+        run: go vet ./mr/... ./bench/... ./chaos/... ./trace/... ./verify/... ./workload/...
+
+      # Every mrapps file is its own package main declaring Map and Reduce, so
+      # they build one at a time as plugins and never as a package.
+      - name: build plugins
+        run: |
+          for src in mrapps/*.go; do
+            echo "building $src"
+            go build -buildmode=plugin -o "/tmp/$(basename "$src" .go).so" "$src"
+          done
+
+      # mr-main holds three separate commands in one directory, so they also
+      # build one at a time.
+      - name: build commands
+        run: |
+          for cmd in mrcoordinator mrworker mrsequential; do
+            echo "building $cmd"
+            go build -o "/tmp/$cmd" "mr-main/$cmd.go"
+          done
+
+      - name: build harnesses
+        run: |
+          go build -o /tmp/mrbench ./bench
+          go build -o /tmp/chaos ./chaos
+          go build -o /tmp/chaosworker ./chaos/worker
+
+      # The race detector is not optional here: the fault tolerance claims are
+      # about concurrent workers, and an unraced pass would not support them.
+      - name: test with the race detector
+        run: go test -race -count=1 -timeout 15m ./mr/... ./bench/... ./trace/... ./verify/... ./workload/...
+
+      # Chaos scenarios launch and kill real worker processes, so they run as
+      # their own step where a failure is unambiguous.
+      - name: fault injection scenarios
+        run: go test -race -count=1 -timeout 15m ./chaos/...
